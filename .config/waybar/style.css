@@ -1,0 +1,104 @@
+/* --- Global Styles --- */
+* {
+    font-family: "JetBrainsMono Nerd Font", "Font Awesome 6 Free","Font Awesome 6 Brand", "Roboto", "Helvetica", "Arial", sans-serif;
+    font-size: 13px;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+}
+
+/* The Bar itself */
+window#waybar {
+    background-color: rgba(30, 30, 46, 0.8); /* Slightly more opaque for better legibility when packed */
+    color: #cdd6f4;
+    transition-property: background-color;
+    transition-duration: 0.5s;
+}
+
+/* --- Packed Module Styling --- */
+#workspaces,
+#mode,
+#window,
+#clock,
+#battery,
+#cpu,
+#memory,
+#disk,
+#temperature,
+#backlight,
+#network,
+#pulseaudio,
+#wireplumber,
+#tray,
+#idle_inhibitor,
+#bluetooth,
+#custom-media,
+#power-profiles-daemon {
+    padding: 0 7px;      /* Reduced from 10px to pack internal space */
+    margin: 4px 1px;      /* Reduced from 4px to 1px to pack icons together */
+    background-color: #313244; 
+    border-radius: 6px;   /* Slightly sharper corners look better when packed */
+    transition: all 0.2s ease-in-out;
+}
+
+/* --- Workspaces (Tightened) --- */
+#workspaces {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+#workspaces button {
+    padding: 0 4px;      /* Tighter spacing between workspace numbers/icons */
+    color: #6c7086;
+    background-color: transparent;
+}
+
+#workspaces button.active,
+#workspaces button.focused {
+    color: #89b4fa;
+    border-bottom: 2px solid #89b4fa;
+}
+
+/* --- Module Specific Colors --- */
+#clock { color: #cba6f7; font-weight: bold; }
+#battery { color: #a6e3a1; }
+#battery.charging { color: #f9e2af; }
+#battery.critical:not(.charging) { background-color: #f38ba8; color: #11111b; }
+#cpu { color: #89dceb; }
+#memory { color: #f5c2e7; }
+#temperature { color: #fab387; }
+#network { color: #89b4fa; }
+#pulseaudio { color: #eba0ac; }
+#pulseaudio.muted { color: #6c7086; }
+#tray { margin-right: 5px; }
+
+/* --- Window Title --- */
+#window {
+    background-color: transparent;
+    color: #cdd6f4;
+    margin-left: 8px;
+}
+
+/* --- Hover Effects (GTK Compatible) --- */
+/* We use a subtle background shift instead of padding expansion 
+   to keep the "packed" look consistent even when hovering */
+#clock:hover, #battery:hover, #cpu:hover, #memory:hover, 
+#network:hover, #pulseaudio:hover, #bluetooth:hover {
+    background-color: #45475a;
+}
+
+/* --- Animations --- */
+@keyframes blink {
+    to {
+        background-color: #f38ba8;
+        color: #11111b;
+    }
+}
+
+#battery.critical:not(.charging) {
+    animation-name: blink;
+    animation-duration: 0.5s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
