@@ -1,0 +1,47 @@
+window {
+    background-image: url("file:///usr/share/backgrounds/MadeInAbyss.jpg");
+    background-size: cover;
+    background-position: center;
+}
+
+box#body {
+    background-color: rgba(12, 18, 35, 0.55);
+    border-radius: 14px;
+    padding: 50px;
+    border: 1px solid rgba(180, 150, 90, 0.3);
+}
+
+entry {
+    background-color: rgba(255, 240, 200, 0.07);
+    color: rgba(230, 205, 150, 0.95);
+    border-color: rgba(180, 150, 90, 0.25);
+    border-radius: 7px;
+    caret-color: rgba(230, 205, 150, 0.9);
+}
+
+entry:focus {
+    border-color: rgba(200, 170, 100, 0.55);
+    background-color: rgba(255, 240, 200, 0.1);
+}
+
+button {
+    background-color: rgba(160, 120, 55, 0.3);
+    color: rgba(230, 205, 150, 0.95);
+    border-color: rgba(180, 150, 90, 0.35);
+    border-radius: 7px;
+}
+
+button:hover {
+    background-color: rgba(160, 120, 55, 0.5);
+    border-color: rgba(200, 170, 100, 0.55);
+}
+
+combobox {
+    background-color: rgba(255, 240, 200, 0.07);
+    color: rgba(230, 205, 150, 0.95);
+    border-radius: 7px;
+}
+
+label {
+    color: rgba(210, 185, 130, 0.9);
+}
