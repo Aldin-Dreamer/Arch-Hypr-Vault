@@ -1,0 +1,84 @@
+*{
+	font-family:"JetBrainsMono Nerd Font", monospace;
+	font-size: 13px;
+    border: none;
+    /*font-weight: bold;*/
+}
+
+window#waybar {
+	background-color: rgba(0,0,0,0);
+	color: #ffffff;
+}
+
+button {
+        /* From https://css.glass */
+    background: rgba(236, 221, 164, 0);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    /*backdrop-filter: blur(6.9px);
+    -webkit-backdrop-filter: blur(6.9px);*/
+    border: 1px solid rgba(236, 221, 164, 0.3);
+}
+/* Generic module padding */
+.modules-left > widget > *,
+.modules-center > widget > *,
+.modules-right > widget > * {
+  padding: 2px 4px;
+  color: #a0e8b0;
+}
+
+/*MODULES*/
+#clock
+#battery
+#custom-stats
+#network
+
+
+
+
+#network {
+        /* From https://css.glass */
+    background: rgba(236, 221, 164, 0);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    /*backdrop-filter: blur(6.9px);
+    -webkit-backdrop-filter: blur(6.9px);*/
+    border: 1px solid rgba(236, 221, 164, 0.3);
+}
+
+/* Clock */
+#clock {
+  color: #7fdfaa;
+}
+
+/* Workspaces */
+#workspaces button {
+  padding: 0 6px;
+  color: #a0e8b0;
+  background: transparent;
+}
+
+#workspaces button.active {
+  background: rgba(0, 200, 100, 0.3);
+  color: #ffffff;
+}
+
+/* Temperature — red when critical */
+#temperature.critical {
+  color: #ff4444;
+  font-weight: bold;
+}
+
+/* Battery warning */
+#battery.warning {
+  color: #ffaa00;
+}
+#battery.critical {
+  color: #ff4444;
+}
+
+/* Power button */
+#custom-power {
+  color: #ff6666;
+  padding-right: 12px;
+}
