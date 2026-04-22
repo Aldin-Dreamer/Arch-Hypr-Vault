@@ -1,8 +1,8 @@
-#ignore everything
-*
 
-#Dont ignore
-!*/
-!.gitignore
-!docs/
+
+
+
+
+
+
 
