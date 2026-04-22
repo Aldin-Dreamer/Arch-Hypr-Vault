@@ -9,7 +9,7 @@ An installation guide for security focused users who want a seamlessly encrypted
 > differently across hardware.
 
 > 💡 This guide doubles as a full documentation of my personal setup — dotfiles, 
-> desktop configuration and all. Feel free to pick and choose what's relevant to 
+> desktop configuration and all. I recommend you to pick and choose what's relevant to 
 > you rather than running the full install script, which will replicate my setup 
 > exactly. Happy installing! 🎉
 ---
