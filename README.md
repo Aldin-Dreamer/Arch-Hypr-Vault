@@ -265,4 +265,12 @@ An installation guide for security focused users who want a seamlessly encrypted
 
 ---
 
-*[Any closing note — contributions welcome, license, etc.]*
+## Desktop Setup
+
+For the Hyprland rice and desktop configuration see [RICE.md](RICE.md)
+
+---
+
+## License
+
+[MIT](LICENSE)
