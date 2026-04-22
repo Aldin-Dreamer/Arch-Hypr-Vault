@@ -1,43 +1,75 @@
-# Arch Linux —  Seamless LUKS Encrypted Boot with TPM2 Auto-Unlock and Secure Boot
+<h1 align="center">
+  <a href="https://github.com/GITHUB_USERNAME/REPO_SLUG">
+    <!-- Please provide path to your logo here -->
+    <img src="docs/images/logo.svg" alt="Logo" width="100" height="100">
+  </a>
+</h1>
 
-An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official Arch Wiki Installion guide.This guide will cover how the setup works and how to replicate it yourself and what the automated install scripts do. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
+<div align="center">
+  Arch Linux — Seamless LUKS Encrypted Boot with TPM2 Auto-Unlock and Secure Boot
+  <br />
+  <br />
+  <a href="https://github.com/GITHUB_USERNAME/REPO_SLUG/issues/new?assignees=&labels=bug&template=01_BUG_REPORT.md&title=bug%3A+">Report a Bug</a>
+  ·
+  <a href="https://github.com/GITHUB_USERNAME/REPO_SLUG/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+">Ask a Question</a>
+</div>
 
-> ⚠️ **Warning:** This process involves disk partitioning and will erase all data 
-> on the target drive. Back up anything important before proceeding. There is also 
-> a real risk of bricking your system — read the entire guide at least once before 
+<div align="center">
+<br />
+
+[![Project license](https://img.shields.io/github/license/GITHUB_USERNAME/REPO_SLUG.svg?style=flat-square)](LICENSE)
+[![Pull Requests welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/GITHUB_USERNAME/REPO_SLUG/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+[![code with love by GITHUB_USERNAME](https://img.shields.io/badge/%3C%2F%3E%20with%20%E2%99%A5%20by-GITHUB_USERNAME-ff1414.svg?style=flat-square)](https://github.com/GITHUB_USERNAME)
+
+</div>
+
+---
+
+An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official Arch Wiki Installation guide. This guide will cover how the setup works and how to replicate it yourself and what the automated install scripts do. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
+
+> ⚠️ **Warning:** This process involves disk partitioning and will erase all data
+> on the target drive. Back up anything important before proceeding. There is also
+> a real risk of bricking your system — read the entire guide at least once before
 > running any commands. The automated scripts may also have bugs or behave
 > differently across hardware.
 
-> 💡 This guide doubles as a full documentation of my personal setup — dotfiles, 
-> desktop configuration and all. I recommend you to pick and choose what's relevant to 
-> you rather than running the full install script, which will replicate my setup 
+> 💡 This guide doubles as a full documentation of my personal setup — dotfiles,
+> desktop configuration and all. I recommend you to pick and choose what's relevant to
+> you rather than running the full install script, which will replicate my setup
 > exactly. Happy installing! 🎉
----
-
-## Table of Contents
-
-1. [What This Setup Achieves](#1-what-this-setup-achieves)
-2. [How It All Fits Together](#2-how-it-all-fits-together)
-3. [Prerequisites](#3-prerequisites)
-4. [Repo Structure](#4-repo-structure)
-5. [Pre-Installation](#5-pre-installation)
-6. [Disk Partitioning](#6-disk-partitioning)
-7. [LUKS2 Encryption](#7-luks2-encryption)
-8. [Btrfs Setup](#8-btrfs-setup)
-9. [Base System Installation](#9-base-system-installation)
-10. [System Configuration](#10-system-configuration)
-11. [Bootloader — systemd-boot](#11-bootloader--systemd-boot)
-12. [Unified Kernel Image (UKI)](#12-unified-kernel-image-uki)
-13. [Secure Boot](#13-secure-boot)
-14. [TPM2 Enrollment](#14-tpm2-enrollment)
-15. [Snapper — Btrfs Snapshots](#15-snapper--btrfs-snapshots)
-16. [Post-Installation Checklist](#16-post-installation-checklist)
-17. [Recovery Guide](#17-recovery-guide)
-18. [Troubleshooting](#18-troubleshooting)
 
 ---
 
-## 1. What This Setup Achieves
+<details open="open">
+<summary>Table of Contents</summary>
+
+- [What This Setup Achieves](#1-what-this-setup-achieves)
+- [How It All Fits Together](#2-how-it-all-fits-together)
+- [Prerequisites](#3-prerequisites)
+- [Repo Structure](#4-repo-structure)
+- [Pre-Installation](#5-pre-installation)
+- [Disk Partitioning](#6-disk-partitioning)
+- [LUKS2 Encryption](#7-luks2-encryption)
+- [Btrfs Setup](#8-btrfs-setup)
+- [Base System Installation](#9-base-system-installation)
+- [System Configuration](#10-system-configuration)
+- [Bootloader — systemd-boot](#11-bootloader--systemd-boot)
+- [Unified Kernel Image (UKI)](#12-unified-kernel-image-uki)
+- [Secure Boot](#13-secure-boot)
+- [TPM2 Enrollment](#14-tpm2-enrollment)
+- [Snapper — Btrfs Snapshots](#15-snapper--btrfs-snapshots)
+- [Post-Installation Checklist](#16-post-installation-checklist)
+- [Recovery Guide](#17-recovery-guide)
+- [Troubleshooting](#18-troubleshooting)
+- [Desktop Setup](#desktop-setup)
+- [Contributing](#contributing)
+- [Authors & Contributors](#authors--contributors)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+</details>
+
+---
 
 ## 1. What This Setup Achieves
 
@@ -256,21 +288,37 @@ An installation guide for security focused users who want a seamlessly encrypted
 
 ---
 
-## Acknowledgements
-
-<!-- Credit the Arch Wiki pages, blog posts, or repos that helped you -->
-
--
--
-
----
-
 ## Desktop Setup
 
 For the Hyprland rice and desktop configuration see [RICE.md](RICE.md)
 
 ---
 
+## Contributing
+
+Contributions, issues and feature requests are welcome. Feel free to check the [issues page](https://github.com/GITHUB_USERNAME/REPO_SLUG/issues) if you want to contribute.
+
+---
+
+## Authors & Contributors
+
+The original setup of this repository is by [Aldin-Dreamer](https://github.com/Aldin-Dreamer).
+
+For a full list of all authors and contributors, see [the contributors page](https://github.com/GITHUB_USERNAME/REPO_SLUG/contributors).
+
+---
+
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the **MIT license**.
+
+See [LICENSE](LICENSE) for more information.
+
+---
+
+## Acknowledgements
+
+<!-- Credit the Arch Wiki pages, blog posts, or repos that helped you -->
+
+-
+-
