@@ -80,7 +80,7 @@ An installation guide for security focused users who want a seamlessly encrypted
 | Full disk encryption | LUKS2 |
 | Automatic unlock at boot | TPM2 via `systemd-cryptenroll` |
 | Fallback unlock | LUKS passphrase |
-| Tamper-evident boot | Secure Boot with personal keys via `sbctl` |
+| Protection against Evil Maid attacks | Secure Boot with personal keys via `sbctl` |
 | Bootloader | `systemd-boot` |
 | Unified boot image | UKI — kernel + initramfs + cmdline in one signed `.efi` |
 
