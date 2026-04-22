@@ -1,9 +1,17 @@
-# Arch Linux — [Your Setup Title Here]
+# Arch Linux —  Seamless LUKS Encrypted Boot with TPM2 Auto-Unlock and Secure Boot
 
-[Brief description of what this guide covers and who it's for]
+An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official Arch Wiki Installion guide.This guide will cover how the setup works and how to replicate it yourself and what the automated install scripts do. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
 
-> **⚠️ Warning:** [Add your warnings here — data loss, disk wipe, etc.]
+> ⚠️ **Warning:** This process involves disk partitioning and will erase all data 
+> on the target drive. Back up anything important before proceeding. There is also 
+> a real risk of bricking your system — read the entire guide at least once before 
+> running any commands. The automated scripts may also have bugs or behave
+> differently across hardware.
 
+> 💡 This guide doubles as a full documentation of my personal setup — dotfiles, 
+> desktop configuration and all. Feel free to pick and choose what's relevant to 
+> you rather than running the full install script, which will replicate my setup 
+> exactly. Happy installing! 🎉
 ---
 
 ## Table of Contents
@@ -31,12 +39,26 @@
 
 ## 1. What This Setup Achieves
 
-<!-- A table works well here. What feature does each component provide? -->
+## 1. What This Setup Achieves
+
+**Security & Boot**
 
 | Feature | Implementation |
 |---|---|
-| | |
-| | |
+| Full disk encryption | LUKS2 |
+| Automatic unlock at boot | TPM2 via `systemd-cryptenroll` |
+| Fallback unlock | LUKS passphrase |
+| Tamper-evident boot | Secure Boot with personal keys via `sbctl` |
+| Bootloader | `systemd-boot` |
+| Unified boot image | UKI — kernel + initramfs + cmdline in one signed `.efi` |
+
+**Desktop & Personal Choices** *(swap these out for your own preferences)*
+
+| Feature | Implementation |
+|---|---|
+| Filesystem | Btrfs |
+| Snapshot support | Snapper |
+| [ ] | [ ] |
 
 ---
 
