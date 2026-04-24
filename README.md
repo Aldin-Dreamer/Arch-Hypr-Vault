@@ -40,35 +40,57 @@ An installation guide for security focused users who want a seamlessly encrypted
 <details open="open">
 <summary>Table of Contents</summary>
 
-- [What This Setup Achieves](#1-what-this-setup-achieves)
-- [How It All Fits Together](#2-how-it-all-fits-together)
-- [Prerequisites](#3-prerequisites)
-- [Repo Structure](#4-repo-structure)
-- [Pre-Installation](#5-pre-installation)
-- [Disk Partitioning](#6-disk-partitioning)
-- [LUKS2 Encryption](#7-luks2-encryption)
-- [Btrfs Setup](#8-btrfs-setup)
-- [Base System Installation](#9-base-system-installation)
-- [System Configuration](#10-system-configuration)
-- [Bootloader — systemd-boot](#11-bootloader--systemd-boot)
-- [Unified Kernel Image (UKI)](#12-unified-kernel-image-uki)
-- [Secure Boot](#13-secure-boot)
-- [TPM2 Enrollment](#14-tpm2-enrollment)
-- [Snapper — Btrfs Snapshots](#15-snapper--btrfs-snapshots)
-- [Post-Installation Checklist](#16-post-installation-checklist)
-- [Recovery Guide](#17-recovery-guide)
-- [Troubleshooting](#18-troubleshooting)
-- [Desktop Setup](#desktop-setup)
-- [Contributing](#contributing)
-- [Authors & Contributors](#authors--contributors)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
-
+ [Repo Structure](#1-repo-structure)<br>
+ [What This Setup Achieves](#2-what-this-setup-achieves)<br>
+ [Prerequisites](#3-prerequisites)<br>
+ [How It All Fits Together](#4-how-it-all-fits-together)<br>
+ [Pre-Installation](#5-pre-installation)<br>
+ [Disk Partitioning](#6-disk-partitioning)<br>
+ [LUKS2 Encryption](#7-luks2-encryption)<br>
+ [Btrfs Setup](#8-btrfs-setup)<br>
+ [Base System Installation](#9-base-system-installation)<br>
+ [System Configuration](#10-system-configuration)<br>
+ [Bootloader — systemd-boot](#11-bootloader--systemd-boot)<br>
+ [Unified Kernel Image (UKI)](#12-unified-kernel-image-uki)<br>
+ [Secure Boot](#13-secure-boot)<br>
+ [TPM2 Enrollment](#14-tpm2-enrollment)<br>
+ [Snapper — Btrfs Snapshots](#15-snapper--btrfs-snapshots)<br>
+ [Post-Installation Checklist](#16-post-installation-checklist)<br>
+ [Recovery Guide](#17-recovery-guide)<br>
+ [Troubleshooting](#18-troubleshooting)<br>
+ [Desktop Setup](#desktop-setup)<br>
+ [Contributing](#contributing)<br>
+ [Authors & Contributors](#authors--contributors)<br>
+ [License](#license)<br>
+ [Acknowledgements](#acknowledgements)<br>
+ 
 </details>
 
 ---
+</div>
 
-## 1. What This Setup Achieves
+## 1. Repo Structure
+
+```
+Arch-Hypr-Vault/
+├── .gitignore
+├── LICENSE
+├── README.md
+├── RICE.md
+├── .config/
+├── docs/
+│   ├── images/
+|   |   ├── logo.svg
+└── scripts/
+    ├── config.sh
+    ├── install.sh
+    └── ...
+```
+
+---
+<div align="center">
+
+## 2. What This Setup Achieves
 
 **Security & Boot**
 
@@ -87,62 +109,60 @@ An installation guide for security focused users who want a seamlessly encrypted
 |---|---|
 | Filesystem | Btrfs |
 | Snapshot support | Snapper |
+| Window manager | Hyprland | 
 | [ ] | [ ] |
-
----
-
-## 2. How It All Fits Together
-
-<!-- Explain the boot chain from power-on to desktop.
-     A text diagram or ASCII art of the sequence is really helpful here.
-     The goal is: a reader should understand WHY each piece exists before touching a command. -->
 
 ---
 
 ## 3. Prerequisites
 
-<!-- What hardware is required? What should the reader already know?
-     What do they need to have prepared before starting? -->
-
-**Hardware:**
--
-
-**Knowledge:**
--
-
 **You will need:**
--
+<div align="left">
+  <ul>
+    <li>A UEFI system (legacy BIOS doesn't support this setup)</li>
+    <li>You are expected to have read the <a href="https://wiki.archlinux.org/title/Installation_guide">Arch Wiki Installation Guide</a> and meet its prerequisites.</li>
+    <li>A lot of free time especially if you are new. Dont rush this.</li>
+  </ul>
+</div>
 
 ---
 
-## 4. Repo Structure
+## 4. How It All Fits Together
 
-<!-- Show the folder/file tree and briefly describe what each part is for -->
+```mermaid
+flowchart TD
+    A[Power On] --> B[BIOS/UEFI]
+    B --> |Runs|C[POST]
+    C --> D{Secure boot}
+    D --> |Fail|E[Boot Denied]
+    D --> |Pass|F[systemd-boot]
+    F --> G[UKI]
+```
+<div align="left">
+  
+**UEFI/BIOS** — Initializes the hardware and reads the boot entries from NVRAM to determine which EFI partition.
 
-```
-.
-├── README.md
-├── configs/
-├── docs/
-└── scripts/
-```
+**Secure Boot** — Checks cryptographic signatures on the bootloader and UKI before 
+allowing them to run. If any modification has been identified, it will deny boot.
+
+**systemd-boot** — 
+
+**Unified Kernel Image (UKI)** — 
+
+**TPM2 PCR Check** — 
+**Btrfs Mount** — 
+</div>
 
 ---
 
 ## 5. Pre-Installation
 
-### 5.1 Boot the Arch ISO
-
-### 5.2 Verify UEFI Mode
-
-### 5.3 Connect to the Internet
-
-### 5.4 Update the System Clock
 
 ---
 
 ## 6. Disk Partitioning
 
+Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock</a>
 <!-- What partitions are needed, what size, what type?
      A table showing partition / size / purpose is useful here.
      Show the exact commands. Warn the reader to double-check their disk name. -->
