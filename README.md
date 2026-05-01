@@ -93,14 +93,7 @@ Arch-Hypr-Vault/
 | Bootloader | `systemd-boot` |
 | Unified boot image | UKI — kernel + initramfs + cmdline in one signed `.efi` |
 
-**Desktop & Personal Choices** *(swap these out for your own preferences)*
-
-| Feature | Implementation |
-|---|---|
-| Filesystem | Btrfs |
-| Snapshot support | Snapper |
-| Window manager | Hyprland | 
-| [ ] | [ ] |
+>🔒**Security Scope:** This setup will protect your data at rest i.e, if your device gets stolen or is physically tampered with by malicious actors. It wont however protect your setup when it is powered on and running, so you are still vulnerable to attacks from the internet, malware and even when your laptop is stolen while it is powered on. For that you need additional measure such as a firewall, keeping you system updated and not leave it powered on in public places.
 
 ---
 
@@ -110,7 +103,7 @@ Arch-Hypr-Vault/
 <div align="left">
   <ul>
     <li>A UEFI system (legacy BIOS doesn't support this setup)</li>
-    <li>A TPM2 chip</li>
+    <li>A TPM2 chip (You can check if you have it <a href="https://wiki.archlinux.org/title/Trusted_Platform_Module#Checking_TPM_support">here</a>)</li>
     <li>You are expected to have read the <a href="https://wiki.archlinux.org/title/Installation_guide">Arch Wiki Installation Guide</a> and meet its prerequisites.</li>
     <li>A lot of free time especially if you are new. Dont rush this.</li>
   </ul>
@@ -149,9 +142,28 @@ allowing them to run. If any modification has been identified, it will deny boot
 ## 5. Disk Partitioning
 
 Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock</a>
-<!-- What partitions are needed, what size, what type?
-     A table showing partition / size / purpose is useful here.
-     Show the exact commands. Warn the reader to double-check their disk name. -->
+
+The recommended partition strategy for this setup is:
+| Mount Point | Partition type | Recommended Size |
+|---|---|---|
+| /boot | EFI Partition | 1 GiB |
+| / | Root Partition | Remainder of the space. Atleast 23-32 GiB |
+
+**EFI Partition -** The EFI partition is where the Unified Kernel Image(UKI) lives with the kernel, initramfs and microcode. It is recommended to use 1 GiB for future-proof, so if you can spare it - do it. The UKI is pretty big (~100-150MB) so if you plan to put multiple kernel entries, the 1 GiB headroom will be useful. If you have space constraints, you can use 512 MiB instead.
+<div align="left">
+  
+```bash
+# fdisk /dev/sda
+```
+
+</div>
+
+**Root Partition -** This is where the main filesystem lives and hence where you will store most of your data. The size for this partition will generally be whatever you have remaining.
+
+> **Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading <a href="https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption">this</a>.
+
+### 5.1 Format the partitions
+
 
 ---
 
