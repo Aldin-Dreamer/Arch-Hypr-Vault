@@ -95,6 +95,8 @@ Arch-Hypr-Vault/
 
 >🔒**Security Scope:** This setup will protect your data at rest i.e, if your device gets stolen or is physically tampered with by malicious actors. It wont however protect your setup when it is powered on and running, so you are still vulnerable to attacks from the internet, malware and even when your laptop is stolen while it is powered on. For that you need additional measure such as a firewall, keeping you system updated and not leave it powered on in public places.
 
+</div>
+
 ---
 
 ## 3. Prerequisites
@@ -122,6 +124,8 @@ flowchart TD
     D --> |Pass|F[systemd-boot]
     F --> G[UKI]
 ```
+
+
 <div align="left">
   
 **UEFI/BIOS** — Initializes the hardware and reads the boot entries from NVRAM to determine which EFI partition.
