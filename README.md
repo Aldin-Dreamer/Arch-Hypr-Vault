@@ -22,7 +22,7 @@
 
 ---
 
-An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official Arch Wiki Installation guide. This guide will cover how the setup works and how to replicate it yourself and what the automated install scripts do. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
+An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official Arch Wiki Installation guide. This guide will cover how the setup works and how to replicate it yourself. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
 
 > ⚠️ **Warning:** This process involves disk partitioning and will erase all data
 > on the target drive. Back up anything important before proceeding. There is also
@@ -129,6 +129,8 @@ flowchart TD
   
 **UEFI/BIOS** — Initializes the hardware and reads the boot entries from NVRAM to determine which EFI partition.
 
+**POST** — POST stands for power on self test. It checks if the hardware is working properly before booting.
+
 **Secure Boot** — Checks cryptographic signatures on the bootloader and UKI before 
 allowing them to run. If any modification has been identified, it will deny boot.
 
@@ -153,22 +155,34 @@ The recommended partition strategy for this setup is:
 | / | Root Partition | Remainder of the space. Atleast 23-32 GiB |
 
 **EFI Partition -** The EFI partition is where the Unified Kernel Image(UKI) lives with the kernel, initramfs and microcode. It is recommended to use 1 GiB for future-proof, so if you can spare it - do it. The UKI is pretty big (~100-150MB) so if you plan to put multiple kernel entries, the 1 GiB headroom will be useful. If you have space constraints, you can use 512 MiB instead.
-<div align="left">
-  
-```bash
-# fdisk /dev/sda
-```
-
-</div>
 
 **Root Partition -** This is where the main filesystem lives and hence where you will store most of your data. The size for this partition will generally be whatever you have remaining.
 
 > **Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading <a href="https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption">this</a>.
 
-### 5.1 Format the partitions
-jhsifhsefkije
+### 5.1 Creating the partitions
 
+>⚠️**Warning:** The following steps will format the disk.
+> - For dual booting with windows, see [docs/dual-boot-windows.md](docs/dual-boot-windows.md)
 
+Before starting with the partitoning,run: 
+<div align="left">
+  
+```bash
+# fdisk -l
+```
+</div>
+
+You can identify which block device your disk was assigned to (Most commonly it is /dev/sda or /dev/nvme0n1). In the following steps replace '*/dev/the_disk_to_be_partitioned*' with your block device.<br><br>
+
+Now to begin partitioning your chosen drive,run:
+<div align="left">
+  
+```bash
+# fdisk /dev/the_disk_to_be_partitioned
+```
+</div>
+You will enter an interactive command line interface (CLI). 
 
 ---
 
