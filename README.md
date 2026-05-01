@@ -95,7 +95,6 @@ Arch-Hypr-Vault/
 
 >🔒**Security Scope:** This setup will protect your data at rest i.e, if your device gets stolen or is physically tampered with by malicious actors. It wont however protect your setup when it is powered on and running, so you are still vulnerable to attacks from the internet, malware and even when your laptop is stolen while it is powered on. For that you need additional measure such as a firewall, keeping you system updated and not leave it powered on in public places.
 
-</div>
 
 ---
 
@@ -167,6 +166,8 @@ The recommended partition strategy for this setup is:
 > **Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading <a href="https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption">this</a>.
 
 ### 5.1 Format the partitions
+jhsifhsefkije
+
 
 
 ---
