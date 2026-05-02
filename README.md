@@ -1,6 +1,5 @@
 <h1 align="center">
   <a href="https://github.com/Aldin-Dreamer/Arch-Hypr-Vault">
-    <!-- Please provide path to your logo here -->
     <img src="docs/images/logo.svg" alt="Logo" width="100" height="100">
   </a>
 </h1>
@@ -116,7 +115,7 @@ Arch-Hypr-Vault/
 
 ```mermaid
 flowchart TD
-    A[Power On] --> B[BIOS/UEFI]
+    A[Power On] --> B[UEFI]
     B --> |Runs|C[POST]
     C --> D{Secure boot}
     D --> |Fail|E[Boot Denied]
@@ -124,10 +123,10 @@ flowchart TD
     F --> G[UKI]
 ```
 
-
+<!-- To Be Elaborated -->
 <div align="left">
   
-**UEFI/BIOS** — Initializes the hardware and reads the boot entries from NVRAM to determine which EFI partition.
+**UEFI** — Initializes the hardware and reads the boot entries from NVRAM to determine which EFI partition.
 
 **POST** — POST stands for power on self test. It checks if the hardware is working properly before booting.
 
@@ -160,10 +159,17 @@ The recommended partition strategy for this setup is:
 
 > **Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading <a href="https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption">this</a>.
 
+Before you begin, it is important to visualize how disk space works. Think of your disk as a physical strip of land:
+
+    Partitions must be contiguous: A partition is a single, solid block of space. You cannot have half of your "Root" partition at the start of the disk and the other half at the end.
+
+    The "Wall" Effect: A partition can only easily expand into unallocated (free) space directly adjacent to it. If Partition A is followed immediately by Partition B, you cannot grow Partition A without moving or deleting Partition B first.
+
+    Strategy: This is why we create the EFI partition first and the Root partition last. By putting the Root partition at the end, it has "room to grow" into any remaining space on the disk without being blocked by other partitions.
+
 ### 5.1 Creating the partitions
 
->⚠️**Warning:** The following steps will format the disk.
-> - For dual booting with windows, see [docs/dual-boot-windows.md](docs/dual-boot-windows.md)
+> ⚠️**Warning:** The following steps will wipe the disk!! Backup anything you want to save.
 
 Before starting with the partitoning,run: 
 <div align="left">
@@ -182,7 +188,33 @@ Now to begin partitioning your chosen drive,run:
 # fdisk /dev/the_disk_to_be_partitioned
 ```
 </div>
-You will enter an interactive command line interface (CLI). 
+
+You will enter an interactive command-line interface (CLI), you can type 'm' to get the full list of commands. From here, the steps vary for users who are dual booting. For dual booting with windows (other dual booters are also recommended to read this), see [docs/dual-boot-windows.md](docs/dual-boot-windows.md).
+
+The following is for users on a new disk or users who are gonna wipe the entire drive for a fresh install:
+<div align="left">
+  
+  - Type 'p' to print the current partition table. It will show something like:
+  
+  ```bash
+  
+Disk /dev/[device]: [size] GiB, [bytes] bytes, [total_sectors] sectors
+Disk model: [Manufacturer_model_name]              
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: [gpt/dos]
+Disk identifier: [UNIQUE-ID-OR-GUID]
+
+Device           Start          End      Sectors   Size Type
+/dev/[device]1    2048      [sector]     [count]  [size] [Partition_Type]
+/dev/[device]2  [sector]    [sector]     [count]  [size] [Partition_Type]
+  ```
+- If you do not have partitons, only the disk metadata will be shown. If your disklabel type is empty or dos, type 'g' to create a new gpt partition table
+- To delete you existing partition, type 'd' and you will be prompted to enter the partition number of the partition you want to delete.
+- To create new partitions, type 'n'.
+- To save the change and quit, type 'w'. If you don't want to save and exit, type 'q'.
+</div>
 
 ---
 
