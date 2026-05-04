@@ -92,6 +92,14 @@ Arch-Hypr-Vault/
 | Bootloader | `systemd-boot` |
 | Unified boot image | UKI — kernel + initramfs + cmdline in one signed `.efi` |
 
+**Desktop & Personal Choices** *(swap these out for your own preferences)*
+
+| Feature | Implementation |
+|---|---|
+| Filesystem | Btrfs |
+| Snapshot support | Snapper |
+| Windows Manager | Hyprland |
+
 >🔒**Security Scope:** This setup will protect your data at rest i.e, if your device gets stolen or is physically tampered with by malicious actors. It wont however protect your setup when it is powered on and running, so you are still vulnerable to attacks from the internet, malware and even when your laptop is stolen while it is powered on. For that you need additional measure such as a firewall, keeping you system updated and not leave it powered on in public places.
 
 
@@ -145,29 +153,32 @@ allowing them to run. If any modification has been identified, it will deny boot
 
 ## 5. Disk Partitioning
 
+Before we begin, it is important to visualize how disk space and partitions work: <br><br>
+[ Partition 1 | Partition 2 | Free Space | Partition 3 | Free space ]<br><br>
+Given this partition layout, there is an important distinction to make here - the memory is discontinuous. If you want to increase the size of partition 2 in the future, you can only increase it upto the space in front of it, i.e, you cannot use the space available after partition 3 to increase the size of partition 2. This is why we make EFI partition first and root partition last so we can extend it if needed or even shrink it (Though i must add there is a complication in extending and shrinking partitions in this specific setup which will be explained in the LUKS encryption part).
+
+> There is a way to move partitions, but it is risky and involves rewriting the entire contents of the partition to where you want to move it. This takes a long time and there is a significant risk of data loss.<br>
+> 📖 **Further reading:** [Moving Partitions — Arch Wiki](https://wiki.archlinux.org/title/Fdisk#Moving_partitions)
+
+ 5.1 Partition Sceheme
+ ---
+
 Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock</a>
 
 The recommended partition strategy for this setup is:
 | Mount Point | Partition type | Recommended Size |
 |---|---|---|
 | /boot | EFI Partition | 1 GiB |
-| / | Root Partition | Remainder of the space. Atleast 23-32 GiB |
+| / | Root Partition | Remainder of the space. At least 23-32 GiB |
 
-**EFI Partition -** The EFI partition is where the Unified Kernel Image(UKI) lives with the kernel, initramfs and microcode. It is recommended to use 1 GiB for future-proof, so if you can spare it - do it. The UKI is pretty big (~100-150MB) so if you plan to put multiple kernel entries, the 1 GiB headroom will be useful. If you have space constraints, you can use 512 MiB instead.
+**EFI Partition -** The EFI partition is where the Unified Kernel Image(UKI) lives with the kernel, initramfs and microcode. It is recommended to use 1 GiB for future-proofing, so if you can spare it - do it. The UKI is pretty big (~100-150 MiB) so if you plan to put multiple kernel entries, the 1 GiB headroom will be useful. If you have space constraints, you can use 512 MiB instead.
 
-**Root Partition -** This is where the main filesystem lives and hence where you will store most of your data. The size for this partition will generally be whatever you have remaining.
-
+**Root Partition -** This is where the main filesystem lives and hence where you will store most of your data. The size for this partition will generally be whatever you have remaining, so choose a size as per your use case.
+<!-- Mention Zram as an alternative -->
 > **Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading <a href="https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption">this</a>.
 
-Before you begin, it is important to visualize how disk space works. Think of your disk as a physical strip of land:
-
-    Partitions must be contiguous: A partition is a single, solid block of space. You cannot have half of your "Root" partition at the start of the disk and the other half at the end.
-
-    The "Wall" Effect: A partition can only easily expand into unallocated (free) space directly adjacent to it. If Partition A is followed immediately by Partition B, you cannot grow Partition A without moving or deleting Partition B first.
-
-    Strategy: This is why we create the EFI partition first and the Root partition last. By putting the Root partition at the end, it has "room to grow" into any remaining space on the disk without being blocked by other partitions.
-
-### 5.1 Creating the partitions
+ 5.2 Creating the partitions
+ ---
 
 > ⚠️**Warning:** The following steps will wipe the disk!! Backup anything you want to save.
 
@@ -175,7 +186,7 @@ Before starting with the partitoning,run:
 <div align="left">
   
 ```bash
-# fdisk -l
+# lsblk
 ```
 </div>
 
@@ -206,15 +217,35 @@ I/O size (minimum/optimal): 512 bytes / 512 bytes
 Disklabel type: [gpt/dos]
 Disk identifier: [UNIQUE-ID-OR-GUID]
 
-Device           Start          End      Sectors   Size Type
+Device           Start          End      Sectors   Size       Type
 /dev/[device]1    2048      [sector]     [count]  [size] [Partition_Type]
 /dev/[device]2  [sector]    [sector]     [count]  [size] [Partition_Type]
   ```
-- If you do not have partitons, only the disk metadata will be shown. If your disklabel type is empty or dos, type 'g' to create a new gpt partition table
-- To delete you existing partition, type 'd' and you will be prompted to enter the partition number of the partition you want to delete.
-- To create new partitions, type 'n'.
-- To save the change and quit, type 'w'. If you don't want to save and exit, type 'q'.
+- If you do not have partitons, only the disk metadata will be shown. If your disklabel type is empty or dos, type 'g' to create a new gpt partition table.
+- To delete you existing partition, type 'd', then the number of the partition you want to delete.
+- To create new partitions, type 'n', then the number you want to assign the partition then the space
+- To create the EFI partition, type 'n' -> 1 -> enter -> 512
+- To create the root partition, type 'n' -> 2 -> enter -> enter (this will assign rest of the available space to root)
+- Before saving the changes, type 'p' again to see the new partition made
+  ```bash
+  Disk /dev/[device]: [size] GiB, [bytes] bytes, [total_sectors] sectors
+  Disk model: [Manufacturer_model_name]              
+  Units: sectors of 1 * 512 = 512 bytes
+  Sector size (logical/physical): 512 bytes / 512 bytes
+  I/O size (minimum/optimal): 512 bytes / 512 bytes
+  Disklabel type: [gpt/dos]
+  Disk identifier: [UNIQUE-ID-OR-GUID]
+
+  Device           Start          End      Sectors   Size       Type
+  /dev/[device]1    2048      [sector]     [count]    1G      EFI system
+  /dev/[device]2  [sector]    [sector]     [count]    109.8G  Linux root
+  ```
+  
 </div>
+
+5.3 Format the partitions
+---
+
 
 ---
 
