@@ -157,7 +157,7 @@ he following steps will wipe the dis
 
 Before we begin, it is important to visualize how disk space and partitions work: <br><br>
 **[ Partition 1 | Partition 2 | *Free Space* | Partition 3 | *Free space* ]** <br><br>
-Given this partition layout, there is an important distinction to make here - the memory is discontinuous. If you want to increase the size of partition 2 in the future, you can only increase it upto the space in front of it, i.e, you cannot use the space available after partition 3 to increase the size of partition 2. This is why we make EFI partition first and root partition last so we can extend it if needed or even shrink it (Though i must add there is a complication in extending and shrinking partitions in this specific setup which will be explained in the LUKS encryption part).
+Given this partition layout, there is an important distinction to make here - the memory is discontinuous. If you want to increase the size of partition 2 in the future, you can only increase it upto the space in front of it, i.e, you cannot use the space available after partition 3 to increase the size of partition 2. This is why we make EFI partition first and root partition last so we can extend it if needed or even shrink it (Though i must add there is a complication in extending and shrinking partitions in this specific setup due to the LUKS encryption).
 
 > There is a way to move partitions, but it is risky and involves rewriting the entire contents of the partition to where you want to move it. This takes a long time and there is a significant risk of data loss.<br>
 > 📖 **Further reading:** [Moving Partitions — ArchWiki](https://wiki.archlinux.org/title/Fdisk#Moving_partitions)
@@ -313,7 +313,7 @@ For the root partition, before we create the filesystem, we need to encrypt it. 
 </div>
 You will be prompted to enter a password for unlocking the encryption. This will be your fallback passphrase if the TPM2 auto-unlock fails.
 
->❗**IMPORTANT:** Make sure to use a sufficiently secure password. Even though the keyslot will be wiped later, SSD wear-leveling can cause it to persist after removal for an indefinite amount of time. Also make sure to physically write this down or save it somewhere secure, if you lose this passphrase and TPM2 auto-unlock fails — you will be locked out of your system forever.
+>❗**IMPORTANT:** Make sure to use a sufficiently secure password. Even though the keyslot will be wiped later, SSD wear-leveling can cause it to persist after removal for an indefinite amount of time. Also make sure to physically write this down or save it somewhere secure, if you lose this passphrase and TPM2 auto-unlock fails — you will be locked out of your system forever with no way to recover it.
 
 Now to create the filesystem for root partition, first open the LUKS volume to access the root partition. Run the command and enter the password:
 <div align="left">
@@ -353,9 +353,7 @@ Then mount both the root partition and EFI partitions:
 
 ## 7. Btrfs Setup
 
-### 7.1 Format and Mount
-
-### 7.2 Subvolume Layout
+### 7.1 Subvolume Layout
 
 <!-- Which subvolumes are you creating and why?
      A table of subvolume → mount point → snapshotted yes/no is useful here. -->
