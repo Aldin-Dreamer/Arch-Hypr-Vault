@@ -196,10 +196,10 @@ Before starting with the partitoning,run:
 
 You can identify which block device your disk was assigned to (Most commonly it is /dev/sda or /dev/nvme0n1). In the following steps replace '*/dev/[device]*' with your block device.<br><br>
 
-**Optional — 4096 Native Sector Size:** Most solid state drives (SSD) report their logical sector size as 512 bytes, even though they use larger sector size physically. If your SSD support 4096 bytes sector size, it is recommended to format it before partitioning to improve both the performance and lifespan of your SSD. Check if it supported by running:
+💡**Optional — 4096 Native Sector Size:** Most solid state drives (SSD) report their logical sector size as 512 bytes, even though they use larger sector size physically. If your SSD support 4096 bytes sector size, it is recommended to format it before partitioning to improve both the performance and lifespan of your SSD. Check if it supported by running:
 >⚠️**Warning:** This specific step will wipe your entire disk and not just partitions, I am warning you again to backup anything you wish to save.
 >
->If you are using a USB attached external drive, read [Advanced Format — ArchWiki](https://wiki.archlinux.org/title/Advanced_Format#Advanced_Format_hard_disk_drives) before deciding to change your sector size. There are some NVme SSD that report they support 4096 bytes sectors but they encounter unstability especially under random heavy read load. If encountering this issue, simply revert back to 512 byte sector configuration.
+>If you are using a USB attached external drive, read [Advanced Format — ArchWiki](https://wiki.archlinux.org/title/Advanced_Format#Advanced_Format_hard_disk_drives) before deciding to change your sector size. There are some NVMe SSD that report they support 4096 bytes sectors but they encounter unstability especially under random heavy read load. If encountering this issue, simply revert back to 512 byte sector configuration.
 <div align="left">
   
   ```bash
@@ -257,14 +257,14 @@ You will enter an interactive command-line interface (CLI), you can type 'm' to 
 Disk /dev/[device]: [size] GiB, [bytes] bytes, [total_sectors] sectors
 Disk model: [Manufacturer_model_name]              
 Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
+Sector size (logical/physical): 512 bytes / 4096 bytes
 I/O size (minimum/optimal): 512 bytes / 512 bytes
 Disklabel type: [gpt/dos]
 Disk identifier: [UNIQUE-ID-OR-GUID]
 
-Device           Start          End      Sectors   Size       Type
-/dev/[device]1    2048      [sector]     [count]  [size] [Partition_Type]
-/dev/[device]2  [sector]    [sector]     [count]  [size] [Partition_Type]
+Device                                 Start        End        Sectors   Size       Type
+/dev/[device][EFI_partition_number]    2048       [sector]     [count]  [size] [Partition_Type]
+/dev/[device][root_partition_number]  [sector]    [sector]     [count]  [size] [Partition_Type]
   ```
 - If you do not have partitons, only the disk metadata will be shown. If your disklabel type is empty or dos, type 'g' to create a new gpt partition table.
 - To delete you existing partition, type 'd', then the number of the partition you want to delete.
@@ -276,14 +276,14 @@ Device           Start          End      Sectors   Size       Type
   Disk /dev/[device]: [size] GiB, [bytes] bytes, [total_sectors] sectors
   Disk model: [Manufacturer_model_name]              
   Units: sectors of 1 * 512 = 512 bytes
-  Sector size (logical/physical): 512 bytes / 512 bytes
+  Sector size (logical/physical): 512 bytes / 4096 bytes
   I/O size (minimum/optimal): 512 bytes / 512 bytes
   Disklabel type: [gpt/dos]
   Disk identifier: [UNIQUE-ID-OR-GUID]
-
-  Device           Start          End      Sectors   Size       Type
-  /dev/[device]1    2048      [sector]     [count]    1G      EFI system
-  /dev/[device]2  [sector]    [sector]     [count]    109.8G  Linux root
+  
+  Device                                 Start        End        Sectors   Size       Type
+  /dev/[device][EFI_partition_number]    2048       [sector]     [count]  [size]   EFI System
+  /dev/[device][root_partition_number]  [sector]    [sector]     [count]  [size]  Linux filesystem
   ```
 - Type 'w' to save the changes and exit.
 </div>
@@ -293,9 +293,61 @@ Device           Start          End      Sectors   Size       Type
 
 ## 6. LUKS2 Encryption
 
-<!-- The format command and the options you chose — explain briefly why each option matters.
-     How do you open the container after formatting?
-     What should the reader do with their passphrase? -->
+Once the partitions have been created, each newly created partition must be formatted with an appropriate file system. 
+For the EFI partition, we will format it with FAT32 filesystem. This is the recommended option as the choice of filesystem needs to adhere to [UEFI specifications](https://uefi.org/specs/UEFI/2.11/13_Protocols_Media_Access.html#file-system-format-1). To create it, run:
+>⚠️**Warning:** Only format the EFI system partition if you created it during the partitioning step. If there already was an EFI system partition on disk beforehand, reformatting it can destroy the boot loaders of other installed operating systems.
+<div align="left">
+
+```bash
+# mkfs.fat -F 32 /dev/[device][EFI_partition_number]
+```
+</div>
+
+For the root partition, before we create the filesystem, we need to encrypt it. To create the LUKS volume, run:
+>📝**Note:** In the previous section, if you did not do the optional step of changing the logical sector size of you SSD, omit the *--sector-size 4096* in the below command.
+<div align="left">
+  
+```bash
+# cryptsetup luksFormat --sector-size 4096 /dev/[device][root_partition_number]
+```
+</div>
+You will be prompted to enter a password for unlocking the encryption. This will be your fallback passphrase if the TPM2 auto-unlock fails.
+
+>❗**IMPORTANT:** Make sure to use a sufficiently secure password. Even though the keyslot will be wiped later, SSD wear-leveling can cause it to persist after removal for an indefinite amount of time. Also make sure to physically write this down or save it somewhere secure, if you lose this passphrase and TPM2 auto-unlock fails — you will be locked out of your system forever.
+
+Now to create the filesystem for root partition, first open the LUKS volume to access the root partition. Run the command and enter the password:
+<div align="left">
+  
+```bash
+# cryptsetup open /dev/[device][root_partition_number] root
+```
+</div>
+
+You can verify if your root partition has been successfully encrypted by running lsblk. Instead of the root partition you created, you will see /dev/mapper/root:
+<div align="left">
+
+```bash
+lsblk
+```
+</div>
+
+Then create a filesystem on the unlocked root partition. This is where you can choose your preferred filesystem. If you are following this guide exactly, it would be the btrfs filesystem. 
+
+> 📖 **Filesystem Reference:** Watch this [beginner friendly overview](https://www.youtube.com/watch?v=4kMt5RtDZ7g) or read the [File Systems — ArchWiki](https://wiki.archlinux.org/title/File_systems#Types_of_file_systems) for a detailed comparison. If you choose a different filesystem, replace mkfs.btrfs in the command below with the appropriate command for your choice.
+<div align="left">
+  
+```bash
+# mkfs.btrfs /dev/mapper/root
+```
+</div>
+Then mount both the root partition and EFI partitions:
+<div align="left">
+  
+```bash
+# mount /dev/mapper/root /mnt
+# mount --mkdir /dev/[device][EFI_partition_number] /mnt/boot
+```
+</div>
 
 ---
 
