@@ -21,7 +21,7 @@
 
 ---
 
-An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official Arch Wiki Installation guide. This guide will cover how the setup works and how to replicate it yourself. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
+An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official ArchWiki Installation guide. This guide will cover how the setup works and how to replicate it yourself. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
 
 > ⚠️ **Warning:** This process involves disk partitioning and will erase all data
 > on the target drive. Back up anything important before proceeding. There is also
@@ -112,10 +112,12 @@ Arch-Hypr-Vault/
   <ul>
     <li>A UEFI system (legacy BIOS doesn't support this setup)</li>
     <li>A TPM2 chip (You can check if you have it <a href="https://wiki.archlinux.org/title/Trusted_Platform_Module#Checking_TPM_support">here</a>)</li>
-    <li>You are expected to have read the <a href="https://wiki.archlinux.org/title/Installation_guide">Arch Wiki Installation Guide</a> and meet its prerequisites.</li>
+    <li>You are expected to have read the <a href="https://wiki.archlinux.org/title/Installation_guide">ArchWiki Installation Guide</a> and meet its prerequisites.</li>
     <li>A lot of free time especially if you are new. Dont rush this.</li>
   </ul>
 </div>
+
+> 📝 **Note:** I will be using the ArchWiki syntax so commands prefixed with `#` are run as root. In the Arch ISO you are already root so no `sudo` is needed. After installation, use `sudo` where required.
 
 ---
 
@@ -144,7 +146,7 @@ allowing them to run. If any modification has been identified, it will deny boot
 **systemd-boot** — 
 
 **Unified Kernel Image (UKI)** — 
-
+he following steps will wipe the dis
 **TPM2 PCR Check** — 
 **Btrfs Mount** — 
 </div>
@@ -154,11 +156,11 @@ allowing them to run. If any modification has been identified, it will deny boot
 ## 5. Disk Partitioning
 
 Before we begin, it is important to visualize how disk space and partitions work: <br><br>
-[ Partition 1 | Partition 2 | Free Space | Partition 3 | Free space ]<br><br>
+**[ Partition 1 | Partition 2 | *Free Space* | Partition 3 | *Free space* ]** <br><br>
 Given this partition layout, there is an important distinction to make here - the memory is discontinuous. If you want to increase the size of partition 2 in the future, you can only increase it upto the space in front of it, i.e, you cannot use the space available after partition 3 to increase the size of partition 2. This is why we make EFI partition first and root partition last so we can extend it if needed or even shrink it (Though i must add there is a complication in extending and shrinking partitions in this specific setup which will be explained in the LUKS encryption part).
 
 > There is a way to move partitions, but it is risky and involves rewriting the entire contents of the partition to where you want to move it. This takes a long time and there is a significant risk of data loss.<br>
-> 📖 **Further reading:** [Moving Partitions — Arch Wiki](https://wiki.archlinux.org/title/Fdisk#Moving_partitions)
+> 📖 **Further reading:** [Moving Partitions — ArchWiki](https://wiki.archlinux.org/title/Fdisk#Moving_partitions)
 
  5.1 Partition Sceheme
  ---
@@ -175,12 +177,14 @@ The recommended partition strategy for this setup is:
 
 **Root Partition -** This is where the main filesystem lives and hence where you will store most of your data. The size for this partition will generally be whatever you have remaining, so choose a size as per your use case.
 <!-- Mention Zram as an alternative -->
-> **Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading <a href="https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption">this</a>.
+> 📝**Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading: [Swap Encryption — ArchWiki](https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption)
 
  5.2 Creating the partitions
  ---
 
-> ⚠️**Warning:** The following steps will wipe the disk!! Backup anything you want to save.
+> ⚠️**Warning:** The following steps will wipe the disk!! Backup anything you wish to save.
+
+The steps vary for users who are dual booting. For dual booting with windows (other dual booters are also recommended to read this), see [docs/dual-boot-windows.md](docs/dual-boot-windows.md). The following is for users on a new disk or users who are gonna wipe the entire drive for a fresh install:
 
 Before starting with the partitoning,run: 
 <div align="left">
@@ -190,19 +194,60 @@ Before starting with the partitoning,run:
 ```
 </div>
 
-You can identify which block device your disk was assigned to (Most commonly it is /dev/sda or /dev/nvme0n1). In the following steps replace '*/dev/the_disk_to_be_partitioned*' with your block device.<br><br>
+You can identify which block device your disk was assigned to (Most commonly it is /dev/sda or /dev/nvme0n1). In the following steps replace '*/dev/[device]*' with your block device.<br><br>
+
+**Optional — 4096 Native Sector Size:** Most solid state drives (SSD) report their logical sector size as 512 bytes, even though they use larger sector size physically. If your SSD support 4096 bytes sector size, it is recommended to format it before partitioning to improve both the performance and lifespan of your SSD. Check if it supported by running:
+>⚠️**Warning:** This specific step will wipe your entire disk and not just partitions, I am warning you again to backup anything you wish to save.
+>
+>If you are using a USB attached external drive, read [Advanced Format — ArchWiki](https://wiki.archlinux.org/title/Advanced_Format#Advanced_Format_hard_disk_drives) before deciding to change your sector size. There are some NVme SSD that report they support 4096 bytes sectors but they encounter unstability especially under random heavy read load. If encountering this issue, simply revert back to 512 byte sector configuration.
+<div align="left">
+  
+  ```bash
+# nvme id-ns -H /dev/[device] | grep "Relative Performance"
+---------------------------------------------------------------------------------------------------------------------------------
+
+LBA Format  0 : Metadata Size: 0   bytes - Data Size: 512 bytes - Relative Performance: 0 Best (in use)
+LBA Format  1 : Metadata Size: 0   bytes - Data Size: 4096 bytes - Relative Performance: 0 Best 
+```
+</div>
+If you see a format with 4096 bytes, thats your native sector size. If it is supported but shows 512 bytes format is in use, you can change it by running:
+<div align="left">
+
+```bash
+# nvme format --lbaf=1 /dev/[device]
+----------------------------------------------------------------------------------------------------------------------------------
+You are about to format [device], namespace 0x1.
+WARNING: Format may irrevocably delete this device's data.
+You have 10 seconds to press Ctrl-C to cancel this operation.
+
+Use the force [--force] option to suppress this warning.
+Sending format operation ... 
+Success formatting namespace:
+```
+</div>
+Then verify that your logical sector size changed:
+<div align="left">
+
+  ```bash
+# nvme id-ns -H /dev/[device] | grep "Relative Performance"
+---------------------------------------------------------------------------------------------------------------------------------
+
+LBA Format  0 : Metadata Size: 0   bytes - Data Size: 512 bytes - Relative Performance: 0 Best 
+LBA Format  1 : Metadata Size: 0   bytes - Data Size: 4096 bytes - Relative Performance: 0 Best (in use) 
+```
+</div>
+
 
 Now to begin partitioning your chosen drive,run:
 <div align="left">
   
 ```bash
-# fdisk /dev/the_disk_to_be_partitioned
+# fdisk /dev/[device]
 ```
 </div>
 
-You will enter an interactive command-line interface (CLI), you can type 'm' to get the full list of commands. From here, the steps vary for users who are dual booting. For dual booting with windows (other dual booters are also recommended to read this), see [docs/dual-boot-windows.md](docs/dual-boot-windows.md).
-
-The following is for users on a new disk or users who are gonna wipe the entire drive for a fresh install:
+You will enter an interactive command-line interface (CLI), you can type 'm' to get the full list of commands.
+<!-- TO BE REWORKED -->
 <div align="left">
   
   - Type 'p' to print the current partition table. It will show something like:
@@ -224,7 +269,7 @@ Device           Start          End      Sectors   Size       Type
 - If you do not have partitons, only the disk metadata will be shown. If your disklabel type is empty or dos, type 'g' to create a new gpt partition table.
 - To delete you existing partition, type 'd', then the number of the partition you want to delete.
 - To create new partitions, type 'n', then the number you want to assign the partition then the space
-- To create the EFI partition, type 'n' -> 1 -> enter -> 512
+- To create the EFI partition, type 'n' -> 1 -> enter -> +1G
 - To create the root partition, type 'n' -> 2 -> enter -> enter (this will assign rest of the available space to root)
 - Before saving the changes, type 'p' again to see the new partition made
   ```bash
@@ -240,11 +285,8 @@ Device           Start          End      Sectors   Size       Type
   /dev/[device]1    2048      [sector]     [count]    1G      EFI system
   /dev/[device]2  [sector]    [sector]     [count]    109.8G  Linux root
   ```
-  
+- Type 'w' to save the changes and exit.
 </div>
-
-5.3 Format the partitions
----
 
 
 ---
