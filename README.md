@@ -349,7 +349,24 @@ Then mount both the root partition and EFI partitions:
 > 📝**Note:** This section is only relevant to you if you chose btrfs as your filesystem while formatting you root partition. Others can skip to the next section. 
 <!-- Which subvolumes are you creating and why?
      A table of subvolume → mount point → snapshotted yes/no is useful here. -->
-2
+**Btrfs Subvolumes** — They function like independent filesystems that can be mounted separately in a hierarchy, providing the benefits of partitions without being actual physical partitions. Because the subvolumes work at the filesystem level rather than the block level, they can be dynamically resized as needed making them more flexible. Note that, because subvolumes are at the filesystem level, the subvolumes combined are limited by the storage space of the physical partition they are occupying. This is especially useful in this setup as we can encrypt them with a single LUKS passphrase.
+ 
+💡**Suggested Btrfs Filesystem Layout:**
+
+| Subvolume | Mountpoint | Purpose |
+|---|---|---|
+| @ | / | Contains the OS. Allows for full system rollbacks without affecting your user-space data. | 
+| @home | /home | Stores user files and settings. Ensures your data remains in the "present" even if the OS is rolled back.  |
+| @snapshots | /.snapshots | Dedicated storage for snapshots. Keeps recovery points isolated from the active OS. |
+| @var_log | /var/log | Preserves system logs across rollbacks. Essential for troubleshooting failure after a restore. |
+| @var_cache | /var/cache | Contains the pacman cache. Saves disk space by keeping temporary files and package archives separate |
+<!-- ADD A NOTE ON SWAPFILES LATER-->
+>🧠**Extra:** If you ever plan to tinker with a Virtual Machine (VM), I suggest making a separate subvolume for the VM and disabling COW (copy on write). This is because VM images are massive files that are constantly being written to. The COW feature of btrfs can cause massive fragmentation on these large files, destroying performance.
+>
+> | Subvolume | Mountpoint |
+> |---|---|
+> | @libvirt | /var/lib/libvirt/images |
+> | @swap | /swap |
 <!-- What mount options are you using (noatime, compress=zstd, etc.) and what does each one do? -->
 
 ---
