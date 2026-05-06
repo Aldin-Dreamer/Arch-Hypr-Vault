@@ -247,13 +247,27 @@ Now to begin partitioning your chosen drive,run:
 </div>
 
 You will enter an interactive command-line interface (CLI), you can type 'm' to get the full list of commands.
-<!-- TO BE REWORKED -->
+
 <div align="left">
-  
-  - Type 'p' to print the current partition table. It will show something like:
-  
-  ```bash
-  
+
+- The basic commands you will use are given below: 
+> → — Separates consecutive steps, each entered at a separate fdisk prompt. <br>
+> ↵ — leave the field blank and press Enter to accept the default value.
+```bash
+1. New GPT Table:               g
+2. Print the partition table:   p
+3. Delete Partition:            d → [partition_number]
+4. EFI Partition:               n → ↵ (This will be your EFI_partition_number) → ↵ → +1G (Size of the partition)
+5. Root Partition:              n → ↵ (This will be your root_partition_number) → ↵ → ↵ (This will allocate all the remaining free space available to the disk) 
+6. EFI Type:                    t → [EFI_partition_number] → 1 (changing the partition_type to EFI system) 
+7. Save & Exit:                 w
+8. Exit without saving:         q
+```
+>📝**Note:**  After the EFI partitioning step if your partition contains filesystem data from previous Operating System, you might be prompted to remove vfat signature. Type 'Y' to delete the signature to ensure a clean partition
+- Your final partition table should look like this:
+```bash
+# fdisk -l
+---------------------------------------------------------------------------------------------------------------------------------
 Disk /dev/[device]: [size] GiB, [bytes] bytes, [total_sectors] sectors
 Disk model: [Manufacturer_model_name]              
 Units: sectors of 1 * 512 = 512 bytes
@@ -261,31 +275,11 @@ Sector size (logical/physical): 512 bytes / 4096 bytes
 I/O size (minimum/optimal): 512 bytes / 512 bytes
 Disklabel type: [gpt/dos]
 Disk identifier: [UNIQUE-ID-OR-GUID]
-
-Device                                 Start        End        Sectors   Size       Type
-/dev/[device][EFI_partition_number]    2048       [sector]     [count]  [size] [Partition_Type]
-/dev/[device][root_partition_number]  [sector]    [sector]     [count]  [size] [Partition_Type]
-  ```
-- If you do not have partitons, only the disk metadata will be shown. If your disklabel type is empty or dos, type 'g' to create a new gpt partition table.
-- To delete you existing partition, type 'd', then the number of the partition you want to delete.
-- To create new partitions, type 'n', then the number you want to assign the partition then the space
-- To create the EFI partition, type 'n' -> 1 -> enter -> +1G
-- To create the root partition, type 'n' -> 2 -> enter -> enter (this will assign rest of the available space to root)
-- Before saving the changes, type 'p' again to see the new partition made
-  ```bash
-  Disk /dev/[device]: [size] GiB, [bytes] bytes, [total_sectors] sectors
-  Disk model: [Manufacturer_model_name]              
-  Units: sectors of 1 * 512 = 512 bytes
-  Sector size (logical/physical): 512 bytes / 4096 bytes
-  I/O size (minimum/optimal): 512 bytes / 512 bytes
-  Disklabel type: [gpt/dos]
-  Disk identifier: [UNIQUE-ID-OR-GUID]
   
-  Device                                 Start        End        Sectors   Size       Type
-  /dev/[device][EFI_partition_number]    2048       [sector]     [count]  [size]   EFI System
-  /dev/[device][root_partition_number]  [sector]    [sector]     [count]  [size]  Linux filesystem
-  ```
-- Type 'w' to save the changes and exit.
+Device                                 Start        End        Sectors   Size       Type
+/dev/[device][EFI_partition_number]    2048       [sector]     [count]    1G    EFI System
+/dev/[device][root_partition_number]  [sector]    [sector]     [count]  [size]  Linux filesystem
+```
 </div>
 
 
@@ -303,7 +297,7 @@ For the EFI partition, we will format it with FAT32 filesystem. This is the reco
 ```
 </div>
 
-For the root partition, before we create the filesystem, we need to encrypt it. To create the LUKS volume, run:
+For the root partition, before we create the filesystem, we need to encrypt it. We are encrypting the partition by writing a LUKS2 header at the beginning of it, turning it into a LUKS volume. The header stores the encryption metadata and key slots, and everything after it would be encrypted data. To create the LUKS volume, run:
 >📝**Note:** In the previous section, if you did not do the optional step of changing the logical sector size of you SSD, omit the *--sector-size 4096* in the below command.
 <div align="left">
   
@@ -327,7 +321,7 @@ You can verify if your root partition has been successfully encrypted by running
 <div align="left">
 
 ```bash
-lsblk
+# lsblk
 ```
 </div>
 
@@ -352,14 +346,10 @@ Then mount both the root partition and EFI partitions:
 ---
 
 ## 7. Btrfs Setup
-
-### 7.1 Subvolume Layout
-
+> 📝**Note:** This section is only relevant to you if you chose btrfs as your filesystem while formatting you root partition. Others can skip to the next section. 
 <!-- Which subvolumes are you creating and why?
      A table of subvolume → mount point → snapshotted yes/no is useful here. -->
-
-### 7.3 Mount Options
-
+2
 <!-- What mount options are you using (noatime, compress=zstd, etc.) and what does each one do? -->
 
 ---
