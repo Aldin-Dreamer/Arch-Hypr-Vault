@@ -355,18 +355,29 @@ Then mount both the root partition and EFI partitions:
 
 | Subvolume | Mountpoint | Purpose |
 |---|---|---|
-| @ | / | Contains the OS. Allows for full system rollbacks without affecting your user-space data. | 
-| @home | /home | Stores user files and settings. Ensures your data remains in the "present" even if the OS is rolled back.  |
-| @snapshots | /.snapshots | Dedicated storage for snapshots. Keeps recovery points isolated from the active OS. |
-| @var_log | /var/log | Preserves system logs across rollbacks. Essential for troubleshooting failure after a restore. |
-| @var_cache | /var/cache | Contains the pacman cache. Saves disk space by keeping temporary files and package archives separate |
-<!-- ADD A NOTE ON SWAPFILES LATER-->
+| @ | / | **The OS Core**. Allows for full system rollbacks without affecting your user-space data. | 
+| @home | /home | **User Space**. Ensures your data remains in the "present" even if the OS is rolled back.  |
+| @snapshots | /.snapshots | **Time Machine**. A dedicated storage for snapshots. Keeps recovery points isolated from the active OS. |
+| @var_log | /var/log | **Troubleshooting**. Preserves system logs across rollbacks. Essential for troubleshooting failure after a restore. |
+| @var_cache | /var/cache | **Package Archive**. Saves disk space by keeping temporary files and package archives separate |
+| @swap | /swap | **Swap**. Swapfile to prevent "Out of memory" crashes when RAM is full. Regardless of how much RAM you have, the Linux kernel is designed to manage background tasks more efficiently with swap . Excluded from snapshots to prevent filesystem errors and overhead. | 
+<!-- ADD AN EXPLANATIONS FOR WHY THE SUBVOLUMES WERE CHOSE-->
 >🧠**Extra:** If you ever plan to tinker with a Virtual Machine (VM), I suggest making a separate subvolume for the VM and disabling COW (copy on write). This is because VM images are massive files that are constantly being written to. The COW feature of btrfs can cause massive fragmentation on these large files, destroying performance.
 >
 > | Subvolume | Mountpoint |
 > |---|---|
 > | @libvirt | /var/lib/libvirt/images |
-> | @swap | /swap |
+
+To create the subvolume, run:
+<div align="left">
+  
+```bash
+# btrfs subvolume create /path/to/subvolume
+```
+</div>
+
+
+
 <!-- What mount options are you using (noatime, compress=zstd, etc.) and what does each one do? -->
 
 ---
