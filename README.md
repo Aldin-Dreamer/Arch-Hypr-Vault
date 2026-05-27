@@ -353,40 +353,80 @@ Then mount both the root partition and EFI partitions:
 ---
 
 ## 7. Btrfs Setup
-> 📝**Note:** This section is only relevant to you if you chose btrfs as your filesystem while formatting you root partition. Others can skip to the next section. 
-<!-- Which subvolumes are you creating and why?
-     A table of subvolume → mount point → snapshotted yes/no is useful here. -->
+> 📝**Note:** This section is only relevant to you if you chose btrfs as your filesystem while formatting your root partition. Others can skip to the next section.
+
 **Btrfs Subvolumes** — They function like independent filesystems that can be mounted separately in a hierarchy, providing the benefits of partitions without being actual physical partitions. Because the subvolumes work at the filesystem level rather than the block level, they can be dynamically resized as needed making them more flexible. Note that, because subvolumes are at the filesystem level, the subvolumes combined are limited by the storage space of the physical partition they are occupying. This is especially useful in this setup as we can encrypt them with a single LUKS passphrase.
  
 💡**Suggested Btrfs Filesystem Layout:**
 
-| Subvolume | Mountpoint | Purpose |
-|---|---|---|
-| @ | / | **The OS Core**. Allows for full system rollbacks without affecting your user-space data. | 
-| @home | /home | **User Space**. Ensures your data remains in the "present" even if the OS is rolled back.  |
-| @snapshots | /.snapshots | **Time Machine**. A dedicated storage for snapshots. Keeps recovery points isolated from the active OS. |
-| @var_log | /var/log | **Troubleshooting**. Preserves system logs across rollbacks. Essential for troubleshooting failure after a restore. |
-| @var_cache | /var/cache | **Package Archive**. Saves disk space by keeping temporary files and package archives separate |
-| @swap | /swap | **Swap**. Swapfile to prevent "Out of memory" crashes when RAM is full. Regardless of how much RAM you have, the Linux kernel is designed to manage background tasks more efficiently with swap . Excluded from snapshots to prevent filesystem errors and overhead. | 
-<!-- ADD AN EXPLANATIONS FOR WHY THE SUBVOLUMES WERE CHOSE-->
->🧠**Extra:** If you ever plan to tinker with a Virtual Machine (VM), I suggest making a separate subvolume for the VM and disabling COW (copy on write). This is because VM images are massive files that are constantly being written to. The COW feature of btrfs can cause massive fragmentation on these large files, destroying performance.
+| Subvolume | Mountpoint | Purpose | CoW | Snapshots | Compression |
+|---|---|---|---|---|---|
+| @ | / | **The OS Core**. Allows for full system rollbacks without affecting your user-space data. | Yes | Yes | Yes |
+| @home | /home  | **User Space**. Ensures your data remains in the "present" even if the OS is rolled back.  | Yes | Yes | Yes |
+| @snapshots | /.snapshots | **Time Machine**. A dedicated storage for snapshots. Keeps recovery points isolated from the active OS. | Yes | No | Yes |
+| @var_log | /var/log | **Troubleshooting**. Preserves system logs across rollbacks. Essential for troubleshooting failure after a restore. | Yes | No | Yes |
+| @var_cache | /var/cache | **Package Archive**. Saves disk space by keeping temporary files and package archives separate | Yes | No | Yes |
+| @swap | /swap | **Swap**. Swapfile to prevent "Out of memory" crashes when RAM is full. Regardless of how much RAM you have, the Linux kernel is designed to manage background tasks more efficiently with swap . Excluded from snapshots to prevent filesystem errors and overhead. | No | No | No |
+
+> 📝**Note:** In swap subvolume, CoW, compression, snapshots are all disabled because all three actively break or hurt swapfile performance.
+
+>🧠**Extra:** If you ever plan to tinker with a Virtual Machine (VM), I suggest making a separate subvolume for the VM and disabling CoW (copy on write), snapshots and compression. This is because VM images are massive files that are constantly being written to. The COW feature of btrfs can cause massive fragmentation on these large files, similarly, snapshots and compression can hurt performance.
 >
-> | Subvolume | Mountpoint |
-> |---|---|
-> | @libvirt | /var/lib/libvirt/images |
+> | Subvolume | Mountpoint | CoW | Snapshots | Compression |
+> |---|---|---|---|---|
+> | @libvirt | /var/lib/libvirt/images | No | No | No |
 
 To create the subvolume, run:
 <div align="left">
   
-```bash
+```bash 
 # btrfs subvolume create /path/to/subvolume
+---------------------------------------------------------------------------------------------------------------------------------
+btrfs subvolume create /mnt/@
+btrfs subvolume create /mnt/@home
+btrfs subvolume create /mnt/@snapshots
+btrfs subvolume create /mnt/@var_log
+btrfs subvolume create /mnt/@var_cache
+btrfs subvolume create /mnt/@swap
+btrfs subvolume create /mnt/@libvirt
 ```
 </div>
 
+We can mount the subvolumes with its corresponding mount options. The commonly used options are:
+<div align="left">
+  
+- ```subvol=PATH``` — mounts subvolume based on its relative path from top-level root. Without this options, Btrfs will default to mounting it to top-level root.
+- ```compress=<type[:level]>``` — Enables compression and automatically evaluates each file's compressibility and skips compression for files that don't compress well. When you read the file, the processor will decompress it on the fly.
+- ```noatime``` — Linux kernel automatically assigns metadata to each file and one of them is atime. It records the last accessed time, this introduces unnecessary writes whenever you open a file. For Btrfs it is recommended to use this option to disable atime.
+</div>
 
+> 📖 **For the full options list:** [Mount options — ArchWiki](https://man.archlinux.org/man/btrfs.5#MOUNT_OPTIONS)
 
-<!-- What mount options are you using (noatime, compress=zstd, etc.) and what does each one do? -->
+First we have to unmount the top-level directory and remount it with the ```subvol``` option pointing to @ so that the subvolume becomes your root directory. Then you create the corresponding mountpoint directory for each subvolume and mount the subvolume with their corresponding options. Run:
+<div align="left">
+  
+```bash
+# umount /mnt
+# mount -o subvol=@,compress=zstd,noatime /dev/mapper/root /mnt
+# mkdir -p /mnt/{home,.snapshots,var/log,var/cache,swap,var/lib/libvirt/images}
+# mount -o subvol=@home,compress=zstd,noatime /dev/mapper/root /mnt/home
+# mount -o subvol=@snapshots,compress=zstd,noatime /dev/mapper/root /mnt/.snapshots
+# mount -o subvol=@var_log,compress=zstd,noatime /dev/mapper/root /mnt/var/log
+# mount -o subvol=@var_cache,compress=zstd,noatime /dev/mapper/root /mnt/var/cache
+# mount -o subvol=@libvirt,noatime /dev/mapper/root /mnt/var/lib/libvirt/images
+# mount -o subvol=@swap,noatime /dev/mapper/root /mnt/swap
+```
+</div>
 
+You must disable CoW before writing any data to the subvolume. If you enable it after, the existing data will retain CoW properties. To disable CoW on a subvolume, run:
+<div align="left">
+  
+```bash
+# chattr +C /path/to/subvolume_mountpoint
+---------------------------------------------------------------------------------------------------------------------------------
+# chattr +C /mnt/var/lib/libvirt/images
+# chattr +C /mnt/swap
+```
 ---
 
 ## 8. Base System Installation
