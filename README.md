@@ -368,7 +368,7 @@ Then mount both the root partition and EFI partitions:
 | @var_cache | /var/cache | **Package Archive**. Saves disk space by keeping temporary files and package archives separate | Yes | No | Yes |
 | @swap | /swap | **Swap**. Swapfile to prevent "Out of memory" crashes when RAM is full. Regardless of how much RAM you have, the Linux kernel is designed to manage background tasks more efficiently with swap . Excluded from snapshots to prevent filesystem errors and overhead. | No | No | No |
 
-> 📝**Note:** In swap subvolume, CoW, compression, snapshots are all disabled because all three actively break or hurt swapfile performance.
+> 📝**Note:** In swap subvolume, CoW, compression, snapshots are all disabled because all three actively break or hurt swapfile performance. Btrfs actively forbids activating a swapfile on a CoW or compressed file.
 
 >🧠**Extra:** If you ever plan to tinker with a Virtual Machine (VM), I suggest making a separate subvolume for the VM and disabling CoW (copy on write), snapshots and compression. This is because VM images are massive files that are constantly being written to. The COW feature of btrfs can cause massive fragmentation on these large files, similarly, snapshots and compression can hurt performance.
 >
@@ -427,6 +427,14 @@ You must disable CoW before writing any data to the subvolume. If you enable it 
 # chattr +C /mnt/var/lib/libvirt/images
 # chattr +C /mnt/swap
 ```
+To veryify that CoW has been disabled, run:
+```bash
+# lsattr -d /mnt/swap
+---------------------------------------------------------------------------------------------------------------------------------
+---------------C------ /mnt/swap
+```
+If the output comes with a capital 'C' then it means CoW has been disabled. This will persist after unmounting, rebooting and system updates.
+
 ---
 
 ## 8. Base System Installation
