@@ -122,33 +122,40 @@ Arch-Hypr-Vault/
 ---
 
 ## 4. How It All Fits Together
+**The Chain of Trust**
 
 ```mermaid
 flowchart TD
     A[Power On] --> B[UEFI]
     B --> |Runs|C[POST]
-    C --> D{Secure boot}
+    C --> D{Secure boot?}
     D --> |Fail|E[Boot Denied]
     D --> |Pass|F[systemd-boot]
     F --> G[UKI]
+    G --> H{TPM2 PCR Check?}
+    H --> |Fail|I[Recovery Key]
+    H --> |Pass|J[LUKS2]
+    I --> J
+    J --> K[Switch root to OS]
+    K --> L[systemd init & Userspace]
 ```
-
-<!-- To Be Elaborated -->
 <div align="left">
   
-**UEFI** — Initializes the hardware and reads the boot entries from NVRAM to determine which EFI partition.
+**UEFI** — The UEFI is the firmware required to boot the computer. It is the root of trust, that's why physical access to the chip compromises the system regardless of software security.
 
-**POST** — POST stands for power on self test. It checks if the hardware is working properly before booting.
+**POST** — POST stands for power on self test. The firmware checks that all hardware is present and functional before handing control to the boot process. Not directly part of the chain of trust but included here for completeness.
 
-**Secure Boot** — Checks cryptographic signatures on the bootloader and UKI before 
-allowing them to run. If any modification has been identified, it will deny boot.
+**Secure Boot** — Before loading anything from disk, the firmware checks the cryptographic signatures on the bootloader and then the UKI before allowing them to run. If any modification has been identified, it will deny boot.
 
-**systemd-boot** — 
+**systemd-boot** — In this setup, the systemd-boot only acts as an interface for the UKI. Its only job is to find and load the UKI
 
-**Unified Kernel Image (UKI)** — 
-he following steps will wipe the dis
-**TPM2 PCR Check** — 
-**Btrfs Mount** — 
+**Unified Kernel Image (UKI)** — UKI bundles the kernel, initramfs, microcode, etc., into a single EFI executable file so it can be signed by a single cryptographic signature that prevents tampering with the file. This wouldn't be possible if they were kept as separate files since each would need to be signed and verified independently, leaving gaps an attacker could exploit.
+
+**TPM2 PCR Check** — The initramfs asks the TPM2 chip to release the LUKS key used to decrypt the LUKS volume.  The TPM checks PCR 7 (Secure Boot state and keys) and PCR 11 (the exact UKI that was loaded). If both match what was recorded at enrollment time it releases the key. If anything in the boot chain changed the PCR values won't match and the TPM refuses.
+
+**LUKS2** — LUKS2 is the encryption scheme being used for disk encryption. Once the TPM2 releases the key, the LUKS volume will be decrypted and the root partition becomes accessible. When TPM2 refuses due to mismatch, you will simply be prompted to manually enter the LUKS key. The decrypted volume is mapped to /dev/mapper/root which the system then mounts as the root filesystem.
+
+**Switch Root & Userspace** — The initramfs hands control over to the actual root filesystem and the Linux boot process continues as normal. systemd starts, bringing up all system services in order until the system is fully operational and ready for login.
 </div>
 
 ---
