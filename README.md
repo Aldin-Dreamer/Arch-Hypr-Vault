@@ -427,13 +427,44 @@ You must disable CoW before writing any data to the subvolume. If you enable it 
 # chattr +C /mnt/var/lib/libvirt/images
 # chattr +C /mnt/swap
 ```
-To veryify that CoW has been disabled, run:
+</div>
+
+To verify that CoW has been disabled, run:
+<div align="left">
+  
 ```bash
 # lsattr -d /mnt/swap
 ---------------------------------------------------------------------------------------------------------------------------------
 ---------------C------ /mnt/swap
 ```
+</div>
+
 If the output comes with a capital 'C' then it means CoW has been disabled. This will persist after unmounting, rebooting and system updates.
+
+To make the @swap subvolume a swapfile, run:
+<div align="left">
+  
+```bash
+# btrfs filesystem mkswapfile --size [size] --uuid clear /swap/swapfile
+# swapon /swap/swapfile
+```
+>📝**Note:** The ```swapon``` command only activates swap for the current session. To make it persisten across reboots, it needs to be added to fstab which will be done in the next section.
+
+>💡**Swapfile size recommendation:** The size of swapfile depends on the amount of RAM your system has and whether you want to hibernate (suspend to disk).
+> - If you want to hibernate, then the swapfile should have the same size as the amount of RAM plus some safety margin for headroom. If you use hibernation with memory compression, then you will need more space, the golden rule will be ```size of RAM + sqrt(size of RAM)```.
+> - If you do not want to hibernate (Recommended for most users), then the swapfile only needs to be 4 to 8 GiB depending on the amount of RAM. 4 GiB for 8 and 16 GiB RAM and 8 for 32+ GiB of RAM.
+</div>
+
+To verify swap has been activated, run the below command and a similar output will be seen:
+<div align="left">
+  
+```bash
+# swapon --show
+---------------------------------------------------------------------------------------------------------------------------------
+NAME           TYPE      SIZE USED PRIO
+/swap/swapfile file      4.0G   0B   -2
+```
+</div>
 
 ---
 
