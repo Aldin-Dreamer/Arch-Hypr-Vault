@@ -398,6 +398,7 @@ We can mount the subvolumes with its corresponding mount options. The commonly u
 - ```subvol=PATH``` — mounts subvolume based on its relative path from top-level root. Without this options, Btrfs will default to mounting it to top-level root.
 - ```compress=<type[:level]>``` — Enables compression and automatically evaluates each file's compressibility and skips compression for files that don't compress well. When you read the file, the processor will decompress it on the fly.
 - ```noatime``` — Linux kernel automatically assigns metadata to each file and one of them is atime. It records the last accessed time, this introduces unnecessary writes whenever you open a file. For Btrfs it is recommended to use this option to disable atime.
+- ```discard``` — Enable discarding of freed file blocks. This is useful for SSD/NVMe devices, thinly provisioned LUNs, or virtual machine images; however, every storage layer must support discard for it to work. ```discard=sync``` discards the file, the moment you delete a file. ```discard=async``` queues the file for deletion and is only deleted when the CPU becomes idle improving perfomance, so it is recommended over synchronous mode.
 </div>
 
 > 📖 **For the full options list:** [Mount options — ArchWiki](https://man.archlinux.org/man/btrfs.5#MOUNT_OPTIONS)
@@ -407,14 +408,14 @@ First we have to unmount the top-level directory and remount it with the ```subv
   
 ```bash
 # umount /mnt
-# mount -o subvol=@,compress=zstd,noatime /dev/mapper/root /mnt
+# mount -o subvol=@,compress=zstd,noatime,discard=async /dev/mapper/root /mnt
 # mkdir -p /mnt/{home,.snapshots,var/log,var/cache,swap,var/lib/libvirt/images}
-# mount -o subvol=@home,compress=zstd,noatime /dev/mapper/root /mnt/home
-# mount -o subvol=@snapshots,compress=zstd,noatime /dev/mapper/root /mnt/.snapshots
-# mount -o subvol=@var_log,compress=zstd,noatime /dev/mapper/root /mnt/var/log
-# mount -o subvol=@var_cache,compress=zstd,noatime /dev/mapper/root /mnt/var/cache
-# mount -o subvol=@libvirt,noatime /dev/mapper/root /mnt/var/lib/libvirt/images
-# mount -o subvol=@swap,noatime /dev/mapper/root /mnt/swap
+# mount -o subvol=@home,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/home
+# mount -o subvol=@snapshots,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/.snapshots
+# mount -o subvol=@var_log,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/var/log
+# mount -o subvol=@var_cache,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/var/cache
+# mount -o subvol=@libvirt,noatime,discard=async /dev/mapper/root /mnt/var/lib/libvirt/images
+# mount -o subvol=@swap,noatime,discard=async /dev/mapper/root /mnt/swap
 ```
 </div>
 
