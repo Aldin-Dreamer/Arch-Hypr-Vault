@@ -499,6 +499,19 @@ The base, linux and linux-firmware packages are mandatory to install. Append the
 > - [Linux man pages](https://wiki.archlinux.org/title/Man_page) — If you want to access the official Linux documentations, you can install [man-db](https://archlinux.org/packages/?name=man-db), [man-pages](https://archlinux.org/packages/?name=man-pages) and [texinfo](https://archlinux.org/packages/?name=texinfo).
 </div>
 
+### Fstab
+
+To get needed file systems mounted on startup, generate an fstab file with persistent block device naming using ```genfstab```. It reads the current mount state and writes it to fstab, so whatever is mounted right now gets recorded. Run:
+<div align="left">
+  
+```bash
+# genfstab -U /mnt >> /mnt/etc/fstab
+```
+</div>
+
+Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors. 
+
+
 ---
 ## 9. System Configuration
 
