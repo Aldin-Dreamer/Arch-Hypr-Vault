@@ -169,10 +169,14 @@ Given this partition layout, there is an important distinction to make here - th
 > There is a way to move partitions, but it is risky and involves rewriting the entire contents of the partition to where you want to move it. This takes a long time and there is a significant risk of data loss.<br>
 > 📖 **Further reading:** [Moving Partitions — ArchWiki](https://wiki.archlinux.org/title/Fdisk#Moving_partitions)
 
+>💡**Optional — Disk Preparation:** If you want the maximum security in exchange for longevity of your SSD, it is recommended to securely erase your drive before encryption by overwriting the entire device with random data. Note that, if you do this step you cannot use TRIM. Using TRIM would just undo this step and hence you would be simply causing wear on your SSD by performing such a large write operation. TRIM helps with longevity of your SSD, so it is recommended for most users that do not use HDD.
+>
+> To securely erase your drive, follow the steps in this article: [Secure Erasure of the drive — ArchWiki](https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation#Secure_erasure_of_the_drive)
+
  5.1 Partition Sceheme
  ---
 
-Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock</a>
+Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock — ArchWiki< /a>
 
 The recommended partition strategy for this setup is:
 | Mount Point | Partition type | Recommended Size |
@@ -398,7 +402,7 @@ We can mount the subvolumes with its corresponding mount options. The commonly u
 - ```subvol=PATH``` — mounts subvolume based on its relative path from top-level root. Without this options, Btrfs will default to mounting it to top-level root.
 - ```compress=<type[:level]>``` — Enables compression and automatically evaluates each file's compressibility and skips compression for files that don't compress well. When you read the file, the processor will decompress it on the fly.
 - ```noatime``` — Linux kernel automatically assigns metadata to each file and one of them is atime. It records the last accessed time, this introduces unnecessary writes whenever you open a file. For Btrfs it is recommended to use this option to disable atime.
-- ```discard``` — Enable discarding of freed file blocks. This is useful for SSD/NVMe devices, thinly provisioned LUNs, or virtual machine images; however, every storage layer must support discard for it to work. ```discard=sync``` discards the file, the moment you delete a file. ```discard=async``` queues the file for deletion and is only deleted when the CPU becomes idle improving perfomance, so it is recommended over synchronous mode.
+- ```discard``` — Enable discarding of freed file blocks. This is useful for SSD/NVMe devices, thinly provisioned LUNs, or virtual machine images; however, every storage layer must support discard for it to work. ```discard=sync``` discards the file, the moment you delete a file. ```discard=async``` queues the file for deletion and is only deleted when the CPU becomes idle improving perfomance, so it is recommended over synchronous mode. 
 </div>
 
 > 📖 **For the full options list:** [Mount options — ArchWiki](https://man.archlinux.org/man/btrfs.5#MOUNT_OPTIONS)
