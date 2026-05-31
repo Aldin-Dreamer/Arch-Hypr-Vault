@@ -514,7 +514,10 @@ To get needed file systems mounted on startup, generate an fstab file with persi
 ```
 </div>
 
-Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors. 
+Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors. ```genfstab``` by default doesnt add ```discard=async``` so check the fstab file for proper mount options.
+
+>💡**TRIM Compatability check:**
+
 
 
 ---
@@ -522,6 +525,15 @@ Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors.
 
 <!-- Everything inside arch-chroot:
      timezone, locale, hostname, root password, user creation, sudo, services to enable -->
+```bash
+# arch-chroot /mnt
+```
+
+Root password:
+```bash
+# passwd
+```
+
 
 ---
 
@@ -653,7 +665,6 @@ See [LICENSE](LICENSE) for more information.
 ---
 
 ## Acknowledgements
-
 
 -
 -
