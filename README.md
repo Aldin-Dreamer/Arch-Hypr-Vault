@@ -168,10 +168,17 @@ Given this partition layout, there is an important distinction to make here - th
 
 > There is a way to move partitions, but it is risky and involves rewriting the entire contents of the partition to where you want to move it. This takes a long time and there is a significant risk of data loss.<br>
 > 📖 **Further reading:** [Moving Partitions — ArchWiki](https://wiki.archlinux.org/title/Fdisk#Moving_partitions)
+<div align="left">
 
->💡**Optional — Disk Preparation:** If you want the maximum security in exchange for longevity of your SSD, it is recommended to securely erase your drive before encryption by overwriting the entire device with random data. Note that, if you do this step you cannot use TRIM. Using TRIM would just undo this step and hence you would be simply causing wear on your SSD by performing such a large write operation. TRIM helps with longevity of your SSD, so it is recommended for most users that do not use HDD.
->
-> To securely erase your drive, follow the steps in this article: [Secure Erasure of the drive — ArchWiki](https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation#Secure_erasure_of_the_drive)
+>🧠**Extra — TRIM:** SSDs store data in cells that must be erased before they can be written to again. Without TRIM, the SSD doesn't know which blocks are free until it tries to write to them, forcing an erase-then-write cycle that slows performance and wears out cells faster over time. TRIM tells the SSD which blocks are no longer in use so it can erase them in advance, keeping write performance consistent and extending the drive's lifespan. To see if your device supports TRIM, run the below command and check the values of DISC-GRAN (discard granularity) and DISC-MAX (discard max bytes) columns. Non-zero values indicate TRIM support.
+>```bash
+># lsblk --discard /dev/[device]
+>```
+</div>
+  
+💡**Optional — Disk Preparation:** If you want the maximum security in exchange for longevity of your SSD, it is recommended to securely erase your drive before encryption by overwriting the entire device with random data. Note that, if you do this step you cannot use TRIM. Using TRIM would just undo this step and hence you would be simply causing wear on your SSD by performing such a large write operation. TRIM helps with longevity of your SSD, so it is recommended for most users that do not use HDD to use TRIM.
+
+To securely erase your drive, follow the steps in this article: [Secure Erasure of the drive — ArchWiki](https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation#Secure_erasure_of_the_drive)
 
  5.1 Partition Sceheme
  ---
@@ -402,7 +409,10 @@ We can mount the subvolumes with its corresponding mount options. The commonly u
 - ```subvol=PATH``` — mounts subvolume based on its relative path from top-level root. Without this options, Btrfs will default to mounting it to top-level root.
 - ```compress=<type[:level]>``` — Enables compression and automatically evaluates each file's compressibility and skips compression for files that don't compress well. When you read the file, the processor will decompress it on the fly.
 - ```noatime``` — Linux kernel automatically assigns metadata to each file and one of them is atime. It records the last accessed time, this introduces unnecessary writes whenever you open a file. For Btrfs it is recommended to use this option to disable atime.
-- ```discard``` — Enable discarding of freed file blocks. This is useful for SSD/NVMe devices, thinly provisioned LUNs, or virtual machine images; however, every storage layer must support discard for it to work. ```discard=sync``` discards the file, the moment you delete a file. ```discard=async``` queues the file for deletion and is only deleted when the CPU becomes idle improving perfomance, so it is recommended over synchronous mode. 
+- ```discard``` — Enable discarding of freed file blocks. This is useful for SSD/NVMe devices, thinly provisioned LUNs, or virtual machine images; however, every storage layer must support discard for it to work. In HDD, the mount option is inherently useless and will be ignored. 
+  - ```discard=sync``` discards the file, the moment you delete a file.
+  - ```discard=async``` queues the file for deletion and is only deleted when the storage drive becomes idle, improving perfomance. Because of this, it is recommended over synchronous mode. This option is enabled by default from Linux 6.2 onwards, we are explicitly adding it as a mount option in the below commands to ensure ```genfstab``` detects it and write it to the fstab file.
+  - ```nodiscard``` disables TRIM support, if you want to prevent forensic tracking risks in exchange for performance and longevity.
 </div>
 
 > 📖 **For the full options list:** [Mount options — ArchWiki](https://man.archlinux.org/man/btrfs.5#MOUNT_OPTIONS)
@@ -411,8 +421,11 @@ First we have to unmount the top-level directory and remount it with the ```subv
 <div align="left">
   
 ```bash
+MARKED FOR REVIEW!!!! Conflict with unmounts
+# umount /mnt/boot 
 # umount /mnt
 # mount -o subvol=@,compress=zstd,noatime,discard=async /dev/mapper/root /mnt
+# mount /mnt/boot
 # mkdir -p /mnt/{home,.snapshots,var/log,var/cache,swap,var/lib/libvirt/images}
 # mount -o subvol=@home,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/home
 # mount -o subvol=@snapshots,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/.snapshots
@@ -450,7 +463,7 @@ To make the @swap subvolume a swapfile, run:
 <div align="left">
   
 ```bash
-# btrfs filesystem mkswapfile --size [size] --uuid clear /swap/swapfile
+# btrfs filesystem mkswapfile --size [size] --uuid clear /mnt/swap/swapfile
 # swapon /swap/swapfile
 ```
 >📝**Note:** The ```swapon``` command only activates swap for the current session. To make it persisten across reboots, it needs to be added to fstab which will be done in the next section.
@@ -475,8 +488,6 @@ NAME           TYPE      SIZE USED PRIO
 
 ## 8. Base System Installation
 
-<!-- pacstrap command with your package list.
-     genfstab — and remind the reader to verify it looks correct. -->
 ### Install essential packages
 
 At this stage you need to install some essential packages aside from the base package for your setup:
@@ -485,7 +496,7 @@ At this stage you need to install some essential packages aside from the base pa
 - [CPU Microcode](https://wiki.archlinux.org/title/Microcode) — Depending on if your processor is amd or intel, you need to install its microcode. Processor manufacturers release stability and security updates to the processor microcode. These updates provide bug fixes that can be critical to the stability of your system.
 - [Userspace Utilities for filesystems](https://wiki.archlinux.org/title/File_systems) — Depending on the choice of file system, intall its corresponding userspace utilities program. In case of Btrfs, it will be [btrfs-progs](https://archlinux.org/packages/?name=btrfs-progs). These helps in using the corresponding file system's features.
 - [Network Manager](https://wiki.archlinux.org/title/Network_configuration#Network_managers) — A network manager lets you manage network connection settings in so called network profiles to facilitate switching networks. It is required if you ever plan on connecting to the internet or do any kind of networking. The recommended option for any standard daily driver desktop that works out of the box is [networkmanager](https://wiki.archlinux.org/title/NetworkManager).
-- [Text Editor](https://wiki.archlinux.org/title/List_of_applications/Documents#Console) — Text editors allows us to read and write files comfortably from theh console.
+- [Text Editor](https://wiki.archlinux.org/title/List_of_applications/Documents#Console) — Text editors allows us to read and write files comfortably from the console.
 - [tpm2-tools](https://archlinux.org/packages/?name=tpm2-tools) and [tpm2-tss](https://archlinux.org/packages/core/x86_64/tpm2-tss/) — TPM2 userspace tool and TPM2 library that is required for setting up TPM2.
 - [sbctl](https://archlinux.org/packages/?name=sbctl) — A user-friendly tool to handle secure boot keys.
 </div>
@@ -497,7 +508,9 @@ The base, linux and linux-firmware packages are mandatory to install. Append the
 # pacstrap -K /mnt base linux linux-firmware
 ```
 
->📝**Note:** To install more packages or package groups, append the names to the ```pacstrap``` command above (space separated) or use ```pacman``` to install them while chrooted into the new system. You can also replace linux with the kernel package of your choice.
+>📝**Note:**
+> - To install more packages or package groups, append the names to the ```pacstrap``` command above (space separated) or use ```pacman``` to install them while chrooted into the new system. You can also replace linux with the kernel package of your choice.
+> - When 
 
 >💡**Optional Tools:** Some optional tools that are recommended to install are:
 > - [efibootmgr](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface#efibootmgr) — A useful tool for mmanaging EFI boot entries. This is used as a diagnostic tool in this guide.
@@ -514,25 +527,36 @@ To get needed file systems mounted on startup, generate an fstab file with persi
 ```
 </div>
 
-Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors. ```genfstab``` by default doesnt add ```discard=async``` so check the fstab file for proper mount options.
+Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors. 
 
->💡**TRIM Compatability check:**
-
-
+<div align="left">
+  
+>📝**Note:** If you have a swapfile, you must manually edit the ```/mnt/etc/fstab``` file configuration to add an entry for the swap file:
+>```
+>/swapfile none swap defaults 0 0
+>```
+</div>
 
 ---
 ## 9. System Configuration
 
 <!-- Everything inside arch-chroot:
      timezone, locale, hostname, root password, user creation, sudo, services to enable -->
+Change root into the new system for the next steps, run:
+<div align="left">
+  
 ```bash
 # arch-chroot /mnt
 ```
-
-Root password:
-```bash
-# passwd
-```
+</div>
+Now we have exited the Arch ISO and is interacting with the new system's environment, tools and configuration. Follow the ArchWiki Installation Guide for the next few steps:
+<div align="left">
+  
+- To set your local time zone, follow the steps in [ArchWiki Installation Guide — Time](https://wiki.archlinux.org/title/Installation_guide#Time).
+- To set your localization, follow the steps in [ArchWiki Installation Guide — Localization](https://wiki.archlinux.org/title/Installation_guide#Localization).
+- To set your hostname and network configuration, follow the steps in [ArchWiki Installation Guide — Network configuration](https://wiki.archlinux.org/title/Installation_guide#Network_configuration).
+- To set a root password, follow the steps in [ArchWiki Installation Guide — Root password](https://wiki.archlinux.org/title/Installation_guide#Root_password).
+</div>
 
 
 ---
@@ -540,6 +564,7 @@ Root password:
 ## 10. Bootloader — systemd-boot
 
 <!-- bootctl install, loader.conf, and why you chose the options you did -->
+
 
 ---
 
