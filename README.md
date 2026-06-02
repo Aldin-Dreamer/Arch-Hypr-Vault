@@ -563,8 +563,6 @@ Now we have chrooted into the new system's filesystem and is interacting with th
 
 ## 10. Bootloader — systemd-boot
 
-<!-- bootctl install, loader.conf, and why you chose the options you did -->
-
 **systemd-boot** — It is a minimal UEFI bootloader that is part of the systemd project. Its only role is to act as a boot menu and simply find and loads signed EFI binaries. This simplicity is what makes it a natural fit for Secure Boot and UKI.
 
 To install systemd-boot to the EFI partition, run:
@@ -614,18 +612,14 @@ editor   no
 
 ## 11. Unified Kernel Image (UKI)
 
-### 11.1 What is a UKI and Why Use One
-
-<!-- Explain what a UKI bundles and the security benefit over separate kernel + initramfs entries.
-     Link to docs/uki-explained.md for the deep dive. -->
-
-### 11.2 Configuring mkinitcpio
+### 11.1 Configuring mkinitcpio
 
 <!-- /etc/kernel/cmdline — how to find your LUKS UUID and what parameters go here.
      /etc/mkinitcpio.conf — the HOOKS line, especially why systemd hooks are used.
      /etc/mkinitcpio.d/linux.preset — enabling UKI output. -->
 
-### 11.3 Building the UKI
+
+### 11.2 Building the UKI
 
 ---
 
