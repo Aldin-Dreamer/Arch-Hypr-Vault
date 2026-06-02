@@ -361,7 +361,7 @@ Then mount both the root partition and EFI partitions:
 ```
 </div>
 
----
+---mount /dev/nvme0n1p1 /mnt/boot
 
 ## 7. Btrfs Setup
 > 📝**Note:** This section is only relevant to you if you chose btrfs as your filesystem while formatting your root partition. Others can skip to the next section.
@@ -424,15 +424,19 @@ First we have to unmount the top-level directory and remount it with the ```subv
 MARKED FOR REVIEW!!!! Conflict with unmounts
 # umount /mnt/boot 
 # umount /mnt
+
 # mount -o subvol=@,compress=zstd,noatime,discard=async /dev/mapper/root /mnt
-# mount /mnt/boot
-# mkdir -p /mnt/{home,.snapshots,var/log,var/cache,swap,var/lib/libvirt/images}
+
+# mkdir -p /mnt/{boot,home,.snapshots,var/log,var/cache,swap,var/lib/libvirt/images}
+
 # mount -o subvol=@home,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/home
 # mount -o subvol=@snapshots,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/.snapshots
 # mount -o subvol=@var_log,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/var/log
 # mount -o subvol=@var_cache,compress=zstd,noatime,discard=async /dev/mapper/root /mnt/var/cache
 # mount -o subvol=@libvirt,noatime,discard=async /dev/mapper/root /mnt/var/lib/libvirt/images
 # mount -o subvol=@swap,noatime,discard=async /dev/mapper/root /mnt/swap
+
+# mount /dev/[device][EFI_partition_number] /mnt/boot
 ```
 </div>
 
@@ -463,8 +467,8 @@ To make the @swap subvolume a swapfile, run:
 <div align="left">
   
 ```bash
-# btrfs filesystem mkswapfile --size [size] --uuid clear /mnt/swap/swapfile
-# swapon /swap/swapfile
+# btrfs filesystem mkswapfile --size [size]g --uuid clear /mnt/swap/swapfile
+# swapon /mnt/swap/swapfile
 ```
 >📝**Note:** The ```swapon``` command only activates swap for the current session. To make it persisten across reboots, it needs to be added to fstab which will be done in the next section.
 
