@@ -183,7 +183,7 @@ To securely erase your drive, follow the steps in this article: [Secure Erasure 
  5.1 Partition Sceheme
  ---
 
-Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock — ArchWiki< /a>
+Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock — ArchWiki</a>
 
 The recommended partition strategy for this setup is:
 | Mount Point | Partition type | Recommended Size |
