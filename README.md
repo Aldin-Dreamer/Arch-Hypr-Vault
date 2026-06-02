@@ -494,7 +494,7 @@ At this stage you need to install some essential packages aside from the base pa
 <div align="left">
   
 - [CPU Microcode](https://wiki.archlinux.org/title/Microcode) — Depending on if your processor is amd or intel, you need to install its microcode. Processor manufacturers release stability and security updates to the processor microcode. These updates provide bug fixes that can be critical to the stability of your system.
-- [Userspace Utilities for filesystems](https://wiki.archlinux.org/title/File_systems) — Depending on the choice of file system, intall its corresponding userspace utilities program. In case of Btrfs, it will be [btrfs-progs](https://archlinux.org/packages/?name=btrfs-progs). These helps in using the corresponding file system's features.
+- [Userspace Utilities for filesystems](https://wiki.archlinux.org/title/File_systems) — Depending on the choice of file system, install its corresponding userspace utilities program. In case of Btrfs, it will be [btrfs-progs](https://archlinux.org/packages/?name=btrfs-progs). These helps in using the corresponding file system's features.
 - [Network Manager](https://wiki.archlinux.org/title/Network_configuration#Network_managers) — A network manager lets you manage network connection settings in so called network profiles to facilitate switching networks. It is required if you ever plan on connecting to the internet or do any kind of networking. The recommended option for any standard daily driver desktop that works out of the box is [networkmanager](https://wiki.archlinux.org/title/NetworkManager).
 - [Text Editor](https://wiki.archlinux.org/title/List_of_applications/Documents#Console) — Text editors allows us to read and write files comfortably from the console.
 - [tpm2-tools](https://archlinux.org/packages/?name=tpm2-tools) and [tpm2-tss](https://archlinux.org/packages/core/x86_64/tpm2-tss/) — TPM2 userspace tool and TPM2 library that is required for setting up TPM2.
@@ -513,7 +513,7 @@ The base, linux and linux-firmware packages are mandatory to install. Append the
 > - When 
 
 >💡**Optional Tools:** Some optional tools that are recommended to install are:
-> - [efibootmgr](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface#efibootmgr) — A useful tool for mmanaging EFI boot entries. This is used as a diagnostic tool in this guide.
+> - [efibootmgr](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface#efibootmgr) — A useful tool for managing EFI boot entries. This is used as a diagnostic tool in this guide.
 > - [Linux man pages](https://wiki.archlinux.org/title/Man_page) — If you want to access the official Linux documentations, you can install [man-db](https://archlinux.org/packages/?name=man-db), [man-pages](https://archlinux.org/packages/?name=man-pages) and [texinfo](https://archlinux.org/packages/?name=texinfo).
 </div>
 
@@ -531,9 +531,9 @@ Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors.
 
 <div align="left">
   
->📝**Note:** If you have a swapfile, you must manually edit the ```/mnt/etc/fstab``` file configuration to add an entry for the swap file:
+>📝**Note:** If you have a swapfile, you must manually edit the ```/mnt/etc/fstab``` file configuration to add an entry for the swap file. If your swapfile is not in ```/swap/swapfile```, replace it with your swapfile path:
 >```
->/swapfile none swap defaults 0 0
+>/swap/swapfile none swap defaults 0 0
 >```
 </div>
 
@@ -549,7 +549,7 @@ Change root into the new system for the next steps, run:
 # arch-chroot /mnt
 ```
 </div>
-Now we have exited the Arch ISO and is interacting with the new system's environment, tools and configuration. Follow the ArchWiki Installation Guide for the next few steps:
+Now we have chrooted into the new system's filesystem and is interacting with the new system's environment, tools and configuration. Follow the ArchWiki Installation Guide for the next few steps:
 <div align="left">
   
 - To set your local time zone, follow the steps in [ArchWiki Installation Guide — Time](https://wiki.archlinux.org/title/Installation_guide#Time).
@@ -565,7 +565,51 @@ Now we have exited the Arch ISO and is interacting with the new system's environ
 
 <!-- bootctl install, loader.conf, and why you chose the options you did -->
 
+**systemd-boot** — It is a minimal UEFI bootloader that is part of the systemd project. Its only role is to act as a boot menu and simply find and loads signed EFI binaries. This simplicity is what makes it a natural fit for Secure Boot and UKI.
 
+To install systemd-boot to the EFI partition, run:
+<div align="left">
+  
+```bash
+# bootctl install
+```
+</div>
+This will copy the systemd-boot UEFI boot manager to the EFI partition, create a UEFI boot entry for it and set it as the first in the UEFI boot order. <br><br>
+
+Verify the installation:
+<div align="left">
+  
+```bash
+# bootctl status
+```
+</div>
+The output should the current boot loader as systemd-boot and ESP as /boot.
+
+### Loader Configuration
+
+Create the loader configuration at `/boot/loader/loader.conf`:
+<div align="left">
+  
+```ini
+default  @saved
+timeout  5
+console-mode max
+editor   no
+```
+</div>
+
+**Option breakdown:**
+<div align="left">
+  
+- `default @saved` — boots the last selected entry automatically. Optionally, you can replace @saved with a .conf file and manually point it to a boot entry but with UKI its easier to maintain with @saved.
+- `timeout 5` — shows the boot menu for 5 seconds before auto-booting
+- `console-mode max` — uses the highest available console resolution
+- `editor no` — disables kernel parameter editing at the boot menu
+</div>
+
+> ⚠️ **Warning:** Keep `editor no`. Without it anyone with physical access can modify kernel parameters at boot and potentially bypass security measures.
+
+> 📖 **Further reading:** [Systemd-boot Configuration — ArchWiki](https://wiki.archlinux.org/title/Systemd-boot#Configuration) . [Configuration Options — ArchWiki](https://man.archlinux.org/man/loader.conf.5)
 ---
 
 ## 11. Unified Kernel Image (UKI)
