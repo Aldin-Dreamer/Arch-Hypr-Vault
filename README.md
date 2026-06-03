@@ -624,9 +624,9 @@ First get the UUID of your LUKS partition:
 # blkid -s UUID -o value /dev/[device][root_partition_number]
 ```
 </div>
-Create `/etc/kernel/cmdline` and add the following, replacing the UUID with your own:
+Create ```/etc/kernel/cmdline``` and add the following, replacing the UUID with your own:
 
->📝**Note:** For users not using Btrfs filesystem, they can skip the Btrfs specific parameter ``` rootflags=subvol=@``` 
+>📝**Note:** For users not using Btrfs filesystem, they can skip the Btrfs specific parameter ```rootflags=subvol=@``` 
 <div align="left">
 
 ```ini
