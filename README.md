@@ -421,7 +421,6 @@ First we have to unmount the top-level directory and remount it with the ```subv
 <div align="left">
   
 ```bash
-MARKED FOR REVIEW!!!! Conflict with unmounts
 # umount /mnt/boot 
 # umount /mnt
 
@@ -621,6 +620,11 @@ editor   no
 <!-- /etc/kernel/cmdline — how to find your LUKS UUID and what parameters go here.
      /etc/mkinitcpio.conf — the HOOKS line, especially why systemd hooks are used.
      /etc/mkinitcpio.d/linux.preset — enabling UKI output. -->
+
+The kernel command line tells the kernel how to boot — which device is the root 
+filesystem, how it is encrypted, and which subvolume to use. Because this is baked 
+into the UKI at build time, it is covered by the Secure Boot signature and cannot 
+be tampered with at boot.
 
 
 ### 11.2 Building the UKI
