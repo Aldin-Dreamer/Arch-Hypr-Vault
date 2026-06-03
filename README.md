@@ -629,7 +629,7 @@ Create `/etc/kernel/cmdline` and add the following, replacing the UUID with your
 >📝**Note:** For users not using Btrfs filesystem, they can skip the Btrfs specific parameter ``` rootflags=subvol=@``` 
 <div align="left">
 
-```bash
+```ini
 rd.luks.name=YOUR-LUKS-UUID=root root=/dev/mapper/root rootflags=subvol=@ rw quiet
 ```
 </div>
