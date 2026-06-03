@@ -600,7 +600,7 @@ editor   no
 **Option breakdown:**
 <div align="left">
   
-- `default @saved` — boots the last selected entry automatically. Optionally, you can replace @saved with a .conf file and manually point it to a boot entry but with UKI its easier to maintain with @saved.
+- `default @saved` — boots the last selected entry automatically. Optionally, you can replace @saved with a .conf file and manually point it to a boot entry but with UKI its easu need to specify depend on whether the encrypt hook or the sd-encrypt hook is being used. rier to maintain with @saved.
 - `timeout 5` — shows the boot menu for 5 seconds before auto-booting
 - `console-mode max` — uses the highest available console resolution
 - `editor no` — disables kernel parameter editing at the boot menu
@@ -655,7 +655,7 @@ be configured:
 <div align="left">
   
 ```ini
-HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck)
+HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)
 ```
 </div>
 
