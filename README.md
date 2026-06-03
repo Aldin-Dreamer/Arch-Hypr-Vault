@@ -172,7 +172,7 @@ Given this partition layout, there is an important distinction to make here - th
 
 >🧠**Extra — TRIM:** SSDs store data in cells that must be erased before they can be written to again. Without TRIM, the SSD doesn't know which blocks are free until it tries to write to them, forcing an erase-then-write cycle that slows performance and wears out cells faster over time. TRIM tells the SSD which blocks are no longer in use so it can erase them in advance, keeping write performance consistent and extending the drive's lifespan. To see if your device supports TRIM, run the below command and check the values of DISC-GRAN (discard granularity) and DISC-MAX (discard max bytes) columns. Non-zero values indicate TRIM support.
 >```bash
-># lsblk --discard /dev/[device]
+># lsblk --discard 
 >```
 </div>
   
@@ -360,8 +360,6 @@ Then mount both the root partition and EFI partitions:
 # mount --mkdir /dev/[device][EFI_partition_number] /mnt/boot
 ```
 </div>
-
----mount /dev/nvme0n1p1 /mnt/boot
 
 ## 7. Btrfs Setup
 > 📝**Note:** This section is only relevant to you if you chose btrfs as your filesystem while formatting your root partition. Others can skip to the next section.
@@ -615,20 +613,106 @@ editor   no
 
 ## 11. Unified Kernel Image (UKI)
 
-### 11.1 Configuring mkinitcpio
+### 11.1 Kernel Command Line
 
-<!-- /etc/kernel/cmdline — how to find your LUKS UUID and what parameters go here.
-     /etc/mkinitcpio.conf — the HOOKS line, especially why systemd hooks are used.
-     /etc/mkinitcpio.d/linux.preset — enabling UKI output. -->
+The kernel command line tells the kernel how to boot, which device is the root filesystem, how it is encrypted, and which subvolume to use. Because this is baked into the UKI at build time, it is covered by the Secure Boot signature and cannot be tampered with at boot.
 
-The kernel command line tells the kernel how to boot — which device is the root 
-filesystem, how it is encrypted, and which subvolume to use. Because this is baked 
-into the UKI at build time, it is covered by the Secure Boot signature and cannot 
-be tampered with at boot.
+First get the UUID of your LUKS partition:
+<div align="left">
 
+```bash
+# blkid -s UUID -o value /dev/[device][root_partition_number]
+```
+</div>
+Create `/etc/kernel/cmdline` and add the following, replacing the UUID with your own:
+
+<div align="left">
+
+>📝**Note:** If you are not using Btrfs filesystem, skip ``` rootflags=subvol=@```
+```bash
+rd.luks.name=YOUR-LUKS-UUID=root root=/dev/mapper/root rootflags=subvol=@ rw quiet
+```
+</div>
+
+**Parameter breakdown:**
+<div align="left">
+
+- `rd.luks.name=UUID=root` — tells the initramfs to unlock the LUKS volume with 
+  this UUID and map it to `/dev/mapper/root`
+- `root=/dev/mapper/root` — tells the kernel the root filesystem is the unlocked 
+  LUKS volume
+- `rootflags=subvol=@` — tells Btrfs to mount the `@` subvolume as root
+- `rw` — mounts root as read-write
+- `quiet` — suppresses most boot messages for a cleaner boot experience
+</div>
+
+### 11.2 Configuring mkinitcpio
+mkinitcpio builds the initramfs and bundles it into the UKI. Two files need to 
+be configured:
+
+**`/etc/mkinitcpio.conf`** — Edit the HOOKS line to use the systemd hook set. The systemd hooks are required for TPM2 unlocking:
+<div align="left">
+  
+```ini
+HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole sd-encrypt block filesystems fsck)
+```
+</div>
+
+> 📝 **Note:** The `sd-encrypt` hook is what handles LUKS decryption in the initramfs. It reads your `/etc/crypttab.initramfs` file which you will configure next.
+
+**`/etc/crypttab.initramfs`** — Tells the initramfs how to unlock the LUKS volume. Create this file and add:
+<div align="left">
+
+```ini
+root UUID=YOUR-LUKS-UUID none discard,tpm2-device=auto
+```
+</div>
+
+> 📝 **Note:** `discard` enables TRIM through the LUKS layer as discussed in the 
+> Btrfs section. `tpm2-device=auto` tells the initramfs to use TPM2 for unlocking — 
+> the TPM2 key slot will be enrolled in a later section. Until then the system will 
+> fall back to your passphrase.
+
+**`/etc/mkinitcpio.d/linux.preset`** — Configure mkinitcpio to output a UKI instead 
+of a traditional initramfs. Edit the file to match:
+<div align="left">
+
+```ini
+ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/boot/vmlinuz-linux"
+
+PRESETS=('default')
+
+default_uki="/boot/EFI/Linux/arch-linux.efi"
+default_options="--splash=/usr/share/systemd/bootctl/splash-arch.bmp"
+```
+</div>
+Create the output directory:
+<div align="left">
+
+```bash
+# mkdir -p /boot/EFI/Linux
+```
+</div>
 
 ### 11.2 Building the UKI
+<div align="left">
 
+```bash
+# mkinitcpio -p linux
+```
+</div>
+Verify the UKI was created:
+<div align="left">
+
+```bash
+# ls -lh /boot/EFI/Linux/
+```
+</div>
+You should see `arch-linux.efi`. This is your UKI, a single signed EFI binary 
+containing everything needed to boot your system.
+
+> ⚠️ **Important:** Every time your kernel updates, the UKI is automatically rebuilt by a mkinitcpio pacman hook. However the new UKI will need to be re-signed for Secure Boot after each rebuild. This is automated in the next section via a pacman hook.
 ---
 
 ## 12. Secure Boot
