@@ -626,9 +626,9 @@ First get the UUID of your LUKS partition:
 </div>
 Create `/etc/kernel/cmdline` and add the following, replacing the UUID with your own:
 
+>📝**Note:** For users not using Btrfs filesystem, they can skip the Btrfs specific parameter ``` rootflags=subvol=@``` 
 <div align="left">
 
->📝**Note:** If you are not using Btrfs filesystem, skip ``` rootflags=subvol=@```
 ```bash
 rd.luks.name=YOUR-LUKS-UUID=root root=/dev/mapper/root rootflags=subvol=@ rw quiet
 ```
