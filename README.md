@@ -117,7 +117,7 @@ Arch-Hypr-Vault/
   </ul>
 </div>
 
-> 📝 **Note:** I will be using the ArchWiki syntax so commands prefixed with `#` are run as root. In the Arch ISO you are already root so no `sudo` is needed. After installation, use `sudo` where required.
+> 📝 **Note:** I will be using the ArchWiki syntax so commands prefixed with `#` are run as root and `$` are run as user. In the Arch ISO you are already root so no `sudo` is needed. After installation, use `sudo` where required.
 
 ---
 
@@ -847,19 +847,126 @@ Before rebooting, enable Secure Boot in your UEFI firmware settings. The system 
 <!-- Which PCRs are you binding to and why?
      What does it mean when PCR values change?
      Link to docs/tpm2-pcr-policy.md for the deep dive. -->
+The TPM2 chip is used to automatically unlock the LUKS encryption key at boot without requiring a passphrase. It does this by binding the key release to specific PCR values — measurements of the boot environment taken by the firmware. If the boot environment changes, the PCR values change and the TPM refuses to release the key, falling back to your passphrase.
+
+> 🧠 **PCR Values:** PCR (Platform Configuration Register) values are 
+> cryptographic measurements taken at each stage of the boot process. Each 
+> measurement is a hash that gets extended into the PCR register — meaning 
+> it's a hash of the previous value combined with the new measurement, creating 
+> a chain that reflects the entire boot history up to that point. We bind to:
+>
+> | PCR | Measures | Why |
+> |---|---|---|
+> | 7 | Secure Boot state and enrolled keys | Ensures Secure Boot is active with our keys |
+> | 11 | The exact UKI that was loaded | Ensures the kernel and initramfs haven't been tampered with |
+
+> ⚠️ **Warning:** TPM2 enrollment must be done from the installed system with 
+> Secure Boot fully active — not from the Arch ISO. The PCR values recorded at 
+> enrollment must match the PCR values at every subsequent boot. Enrolling with 
+> Secure Boot disabled or from the ISO will record the wrong PCR values and 
+> TPM2 unsealing will fail on every normal boot.
+
+Before enrolling, confirm you are in the right state:
+
+```bash
+$ sbctl status
+```
+
+Secure Boot should show `Enabled`. If not, go back and enable it in your 
+firmware settings before continuing.
+
+Confirm TPM2 is detected:
+
+```bash
+$ systemd-cryptenroll --tpm2-device=list
+```
+
+This should list your TPM2 device. If nothing is listed your TPM2 is either 
+not present, not enabled in firmware, or the `tpm2-tss` library is missing.
+
 
 ### 13.2 Enrolling the LUKS Volume
 
 <!-- systemd-cryptenroll command.
      Updating /etc/crypttab.initramfs.
      Rebuilding and re-signing the UKI after enrollment. -->
+Enroll the TPM2 key slot — you will be prompted for your LUKS passphrase to 
+authorize the change:
+
+```bash
+$ systemd-cryptenroll \
+  --tpm2-device=auto \
+  --tpm2-pcrs=7+11 \
+  /dev/[device][root_partition_number]
+```
+
+> 🔑 **Note:** Your original passphrase remains in its own key slot alongside 
+> the TPM2 slot. It is not removed or replaced — it stays as your fallback.
+
+Verify the enrollment was successful:
+
+```bash
+$ systemd-cryptenroll /dev/[device][root_partition_number]
+```
+
+The output should show two slots — one for your passphrase and one for TPM2:
+
+```
+SLOT TYPE
+   0 password
+   1 tpm2
+```
 
 ### 13.3 Testing and Fallback
 
 <!-- What should happen on a successful reboot?
      What does fallback to passphrase look like, and is that expected?
      When does the reader need to re-enroll? -->
+Reboot the system. If everything is correct the LUKS volume will unlock 
+automatically with no passphrase prompt.
 
+```bash
+$ reboot
+```
+
+After rebooting verify Secure Boot and TPM2 are both active:
+
+```bash
+$ sbctl status
+$ systemd-cryptenroll /dev/[device][root_partition_number]
+```
+
+> 📝 **Note:** If TPM2 unsealing fails for any reason, `systemd-cryptsetup` 
+> will automatically fall back to prompting for your passphrase. This is 
+> expected and correct behaviour — it means your fallback is working.
+
+
+### 13.4 When to Re-enroll
+
+TPM2 re-enrollment is required after any of the following events since they 
+change the PCR values recorded at enrollment time:
+
+| Event | PCR affected |
+|---|---|
+| Kernel update | PCR 11 — new UKI changes the measurement |
+| Secure Boot key changes | PCR 7 — key database changed |
+| Firmware update | PCR 7 — firmware state changed |
+| Enabling or disabling Secure Boot | PCR 7 — Secure Boot state changed |
+
+To re-enroll, first wipe the existing TPM2 slot then re-run the enrollment command:
+
+```bash
+$ systemd-cryptenroll --wipe-slot=tpm2 /dev/[device][root_partition_number]
+$ systemd-cryptenroll \
+  --tpm2-device=auto \
+  --tpm2-pcrs=7+11 \
+  /dev/[device][root_partition_number]
+```
+
+> 💡 **Tip:** Kernel updates handled by the pacman hook from the Secure Boot 
+> section automatically re-sign the UKI but do **not** automatically re-enroll 
+> TPM2. After a kernel update you will be prompted for your passphrase on the 
+> next boot — this is normal. Re-enroll after confirming the new kernel boots correctly.
 ---
 
 ## 14. Snapper — Btrfs Snapshots
