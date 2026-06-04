@@ -843,108 +843,99 @@ Before rebooting, enable Secure Boot in your UEFI firmware settings. The system 
 ## 13. TPM2 Enrollment
 
 ### 13.1 Understanding PCR Policies
-
-<!-- Which PCRs are you binding to and why?
-     What does it mean when PCR values change?
-     Link to docs/tpm2-pcr-policy.md for the deep dive. -->
+     
 The TPM2 chip is used to automatically unlock the LUKS encryption key at boot without requiring a passphrase. It does this by binding the key release to specific PCR values — measurements of the boot environment taken by the firmware. If the boot environment changes, the PCR values change and the TPM refuses to release the key, falling back to your passphrase.
 
-> 🧠 **PCR Values:** PCR (Platform Configuration Register) values are 
-> cryptographic measurements taken at each stage of the boot process. Each 
-> measurement is a hash that gets extended into the PCR register — meaning 
-> it's a hash of the previous value combined with the new measurement, creating 
-> a chain that reflects the entire boot history up to that point. We bind to:
+> 🧠 **PCR Values:** PCR (Platform Configuration Register) values are cryptographic measurements taken at each stage of the boot process. Each measurement is a hash that gets extended into the PCR register — meaning it's a hash of the previous value combined with the new measurement, creating a chain that reflects the entire boot history up to that point. We bind to:
 >
 > | PCR | Measures | Why |
 > |---|---|---|
 > | 7 | Secure Boot state and enrolled keys | Ensures Secure Boot is active with our keys |
 > | 11 | The exact UKI that was loaded | Ensures the kernel and initramfs haven't been tampered with |
+>
+> 📖**Further Reading:** [PCR Register — ArchWiki](https://wiki.archlinux.org/title/Trusted_Platform_Module#Accessing_PCR_registers)
 
-> ⚠️ **Warning:** TPM2 enrollment must be done from the installed system with 
-> Secure Boot fully active — not from the Arch ISO. The PCR values recorded at 
-> enrollment must match the PCR values at every subsequent boot. Enrolling with 
-> Secure Boot disabled or from the ISO will record the wrong PCR values and 
-> TPM2 unsealing will fail on every normal boot.
+> ⚠️ **Warning:** TPM2 enrollment must be done from the installed system with Secure Boot fully active — not from the Arch ISO. The PCR values recorded at enrollment must match the PCR values at every subsequent boot. Enrolling with Secure Boot disabled or from the ISO will record the wrong PCR values and TPM2 unsealing will fail on every normal boot.
 
 Before enrolling, confirm you are in the right state:
-
+<div align="left">
+  
 ```bash
 $ sbctl status
 ```
+</div>
 
-Secure Boot should show `Enabled`. If not, go back and enable it in your 
-firmware settings before continuing.
-
+Secure Boot should show `Enabled`. If not, go back and enable it in your firmware settings before continuing.<br><br>
 Confirm TPM2 is detected:
-
+<div align="left">
+  
 ```bash
 $ systemd-cryptenroll --tpm2-device=list
 ```
+</div>
 
-This should list your TPM2 device. If nothing is listed your TPM2 is either 
-not present, not enabled in firmware, or the `tpm2-tss` library is missing.
+This should list your TPM2 device. If nothing is listed your TPM2 is either not present, not enabled in firmware, or the `tpm2-tss` library is missing.
 
 
 ### 13.2 Enrolling the LUKS Volume
 
-<!-- systemd-cryptenroll command.
-     Updating /etc/crypttab.initramfs.
-     Rebuilding and re-signing the UKI after enrollment. -->
-Enroll the TPM2 key slot — you will be prompted for your LUKS passphrase to 
-authorize the change:
-
+Enroll the TPM2 key slot — you will be prompted for your LUKS passphrase to authorize the change:
+<div align="left">
+  
 ```bash
 $ systemd-cryptenroll \
   --tpm2-device=auto \
   --tpm2-pcrs=7+11 \
   /dev/[device][root_partition_number]
 ```
+</div>
 
-> 🔑 **Note:** Your original passphrase remains in its own key slot alongside 
-> the TPM2 slot. It is not removed or replaced — it stays as your fallback.
+> 🔑 **Note:** Your original passphrase remains in its own key slot alongside the TPM2 slot. It is not removed or replaced — it stays as your fallback.
 
 Verify the enrollment was successful:
-
+<div align="left">
+  
 ```bash
 $ systemd-cryptenroll /dev/[device][root_partition_number]
 ```
-
+</div>
 The output should show two slots — one for your passphrase and one for TPM2:
-
+<div align="left">
+  
 ```
 SLOT TYPE
    0 password
    1 tpm2
 ```
+</div>
 
 ### 13.3 Testing and Fallback
 
 <!-- What should happen on a successful reboot?
      What does fallback to passphrase look like, and is that expected?
      When does the reader need to re-enroll? -->
-Reboot the system. If everything is correct the LUKS volume will unlock 
-automatically with no passphrase prompt.
-
+Reboot the system. If everything is correct the LUKS volume will unlock automatically with no passphrase prompt.
+<div align="left">
+  
 ```bash
 $ reboot
 ```
-
+</div>
 After rebooting verify Secure Boot and TPM2 are both active:
-
+<div align="left">
+  
 ```bash
 $ sbctl status
 $ systemd-cryptenroll /dev/[device][root_partition_number]
 ```
+</div>
 
-> 📝 **Note:** If TPM2 unsealing fails for any reason, `systemd-cryptsetup` 
-> will automatically fall back to prompting for your passphrase. This is 
-> expected and correct behaviour — it means your fallback is working.
+> 📝 **Note:** If TPM2 unsealing fails for any reason, `systemd-cryptsetup` will automatically fall back to prompting for your passphrase. This is expected and correct behaviour — it means your fallback is working.
 
 
 ### 13.4 When to Re-enroll
 
-TPM2 re-enrollment is required after any of the following events since they 
-change the PCR values recorded at enrollment time:
+TPM2 re-enrollment is required after any of the following events since they change the PCR values recorded at enrollment time:
 
 | Event | PCR affected |
 |---|---|
@@ -954,7 +945,8 @@ change the PCR values recorded at enrollment time:
 | Enabling or disabling Secure Boot | PCR 7 — Secure Boot state changed |
 
 To re-enroll, first wipe the existing TPM2 slot then re-run the enrollment command:
-
+<div align="left">
+  
 ```bash
 $ systemd-cryptenroll --wipe-slot=tpm2 /dev/[device][root_partition_number]
 $ systemd-cryptenroll \
@@ -962,18 +954,131 @@ $ systemd-cryptenroll \
   --tpm2-pcrs=7+11 \
   /dev/[device][root_partition_number]
 ```
+</div>
 
-> 💡 **Tip:** Kernel updates handled by the pacman hook from the Secure Boot 
-> section automatically re-sign the UKI but do **not** automatically re-enroll 
-> TPM2. After a kernel update you will be prompted for your passphrase on the 
-> next boot — this is normal. Re-enroll after confirming the new kernel boots correctly.
+> 💡 **Tip:** Kernel updates handled by the pacman hook from the Secure Boot section automatically re-sign the UKI but do **not** automatically re-enroll TPM2. After a kernel update you will be prompted for your passphrase on the next boot — this is normal. Re-enroll after confirming the new kernel boots correctly.
 ---
 
 ## 14. Snapper — Btrfs Snapshots
 
-<!-- snapper create-config, retention settings, enabling timers.
-     Mention snap-pac for automatic pre/post snapshots around pacman. -->
+> 📝**Note:** This section is only relevant to you if you chose Btrfs as your filesystem. Others can skip to the next section.
 
+Snapper is a tool for managing Btrfs snapshots. It automates the creation and cleanup of snapshots on a schedule and integrates with pacman via `snap-pac` to automatically create pre and post snapshots around every package transaction — giving you a reliable rollback point before every system change.
+
+> 🧠 **How snapshots work in this setup:** Snapper stores snapshots inside the `@snapshots` subvolume mounted at `/.snapshots`. Each snapshot is a read-only point-in-time copy of the subvolume it belongs to. Because Btrfs snapshots use CoW, they are created instantly and only consume space for data that has changed since the snapshot was taken.
+
+
+### 14.1 Installation
+
+<div align="left">
+  
+```bash
+$ pacman -S snapper snap-pac
+```
+</div>
+
+### 14.2 Creating Snapper Configurations
+
+Snapper requires a configuration for each subvolume you want to snapshot. We will create configurations for `@` and `@home`:
+<div align="left">
+  
+```bash
+$ snapper -c root create-config /
+$ snapper -c home create-config /home
+```
+
+> ⚠️ **Warning:** Running `snapper create-config` will attempt to create a 
+> `.snapshots` directory inside the subvolume. Since we already have a dedicated 
+> `@snapshots` subvolume mounted at `/.snapshots`, you need to verify snapper 
+> is using the correct mount point and not creating its own:
+>
+> ```bash
+> $ ls /.snapshots
+> ```
+>
+> If the directory is empty or owned by snapper correctly you are fine. 
+> If snapper created a nested subvolume instead, delete it and verify 
+> `@snapshots` is mounted correctly at `/.snapshots`.
+</div>
+
+### 14.3 Configuring Retention
+
+Edit `/etc/snapper/configs/root` to set how many snapshots to keep:
+<div align="left">
+  
+```ini
+TIMELINE_LIMIT_HOURLY="5"
+TIMELINE_LIMIT_DAILY="7"
+TIMELINE_LIMIT_WEEKLY="2"
+TIMELINE_LIMIT_MONTHLY="1"
+TIMELINE_LIMIT_YEARLY="0"
+```
+</div>
+
+Apply the same to `/etc/snapper/configs/home` adjusting to your preference. 
+
+> 💡 **Tip:** Be conservative with retention limits — snapshots accumulate 
+> quickly and as discussed earlier, too many snapshots can impact Btrfs 
+> performance. The values above are a reasonable starting point.
+
+### 14.4 Enabling Timers
+
+Enable the timeline and cleanup timers:
+<div align="left">
+  
+```bash
+$ systemctl enable --now snapper-timeline.timer
+$ systemctl enable --now snapper-cleanup.timer
+```
+</div>
+
+`snapper-timeline.timer` creates snapshots on the schedule defined by your 
+retention config. `snapper-cleanup.timer` deletes old snapshots that exceed 
+your retention limits.
+
+Verify the timers are active:
+<div align="left">
+  
+```bash
+$ systemctl status snapper-timeline.timer
+```
+</div>
+
+### 14.5 snap-pac — Automatic Pre/Post Snapshots
+
+`snap-pac` is a pacman hook that automatically creates a snapshot before and 
+after every pacman transaction. This means every `pacman -Syu` or package 
+install gets a rollback point automatically with no manual intervention.
+
+Verify snap-pac is working by installing any package and checking that 
+pre and post snapshots were created:
+<div align="left">
+  
+```bash
+$ snapper -c root list
+```
+</div>
+
+You should see a pair of snapshots with `pre` and `post` type for the 
+transaction.
+
+### 14.6 Rolling Back
+
+If something goes wrong after a package update or system change:
+<div align="left">
+  
+```bash
+# List available snapshots
+$ snapper -c root list
+
+# Roll back to a specific snapshot number
+$ snapper -c root undochange [pre_number]..[post_number]
+```
+</div>
+
+> ⚠️ **Warning:** `undochange` rolls back file changes between two snapshots but does not reboot into the snapshot. For a full system rollback including the kernel you need to boot into the snapshot from the systemd-boot menu and make it the new default. This is covered in the [Recovery Guide](#16-recovery-guide).
+
+> 📖 **Further reading:** [Snapper — ArchWiki](https://wiki.archlinux.org/title/Snapper)
 ---
 
 ## 15. Post-Installation Checklist
