@@ -625,19 +625,21 @@ First get the UUID of your LUKS partition:
 ```
 </div>
 
-Create ```/etc/kernel/cmdline``` and add the following, replacing the UUID with your own:
-<!-- Resume parameter to be mentioned  -->
->📝**Note:** For users not using Btrfs filesystem, they can skip the Btrfs specific parameter ```rootflags=subvol=@``` 
-<div align="left">
+>📝**Note:** mkinitcpio reads kernel parameter two different ways — ```/etc/kernel/cmdline``` file or ```/etc/cmdline.d``` file directory. It reads from the directory by concatenating all the files in the directory with a .conf extension and using them to generate the command line. If you prefer to have all your kernel parameters in a single file, you can create ```/etc/kernel/cmdline``` file and add the parameters to it. This guide creates the ```/etc/cmdline.d``` file directory for a more modular approach.
 
+Create the ```/etc/cmdline.d``` directory and create the following files, replacing the ```YOUR-LUKS-UUID``` with your own:
+<div align="left">
+ 
+```bash
+# mkdir /etc/cmdline.d/
+```
+
+1. ```/etc/cmdline.d/root.conf``` — Contains the LUKS + root filesystem parameters. If you are not using Btrfs filesystem, you can skip the ```rootflags=subvol=@``` parameter:
 ```ini
 rd.luks.name=YOUR-LUKS-UUID=root root=/dev/mapper/root rootflags=subvol=@ rw quiet
 ```
-</div>
 
 **Parameter breakdown:**
-<div align="left">
-
 - `rd.luks.name=UUID=root` — tells the initramfs to unlock the LUKS volume with 
   this UUID and map it to `/dev/mapper/root`
 - `root=/dev/mapper/root` — tells the kernel the root filesystem is the unlocked 
@@ -645,6 +647,33 @@ rd.luks.name=YOUR-LUKS-UUID=root root=/dev/mapper/root rootflags=subvol=@ rw qui
 - `rootflags=subvol=@` — tells Btrfs to mount the `@` subvolume as root
 - `rw` — mounts root as read-write
 - `quiet` — suppresses most boot messages for a cleaner boot experience
+
+2. 💡**Optional:** ```/etc/cmdline.d/security.conf``` — By default, Linux uses Discretionary Access Control (DAC) for file and application permissions. Under DAC, ownership of an object (like a file) determines who has access, meaning if a malicious program compromises a user account (or worse, root), it inherits all of that user's permissions.<br><br>
+To mitigate such vulnerability, you can use AppArmor which uses  Mandatory Access Control (MAC). Think of MAC as being very similar to app permissions on Android: even if you own the phone, a flashlight app isn't allowed to read your contacts unless it  is explicitly granted that specific right. MAC enforces these same kinds of strict, system-wide security policies (profiles) on Linux applications. Even if a process running as root is compromised, AppArmor confines it and prevents it from accessing unauthorized parts of the system.<br><br>
+Creating and maintaining strict AppArmor profiles can admittedly be tedious, and poorly configured profiles can break applications. However, enabling AppArmor at the kernel level changes nothing by default. Unless an application has an active profile assigned to it, the system safely falls back to standard DAC permissions. Enabling this parameter now simply unlocks the future possibility of using AppArmor whenever you are ready, without needing to rebuild or re-sign your UKI later.
+
+```ini
+lsm=landlock,lockdown,yama,integrity,apparmor,bpf audit=1 audit_backlog_limit=256
+```
+
+**Parameter breakdown:**
+- `lsm=landlock,lockdown,yama,integrity,apparmor,bpf` — Sets the initialization order of Linux security modules (LSM). Crucially, this ensures AppArmor is loaded and active.
+- `audit=1` — Enables kernel auditing, which allows AppArmor to log its actions and access violations to the system log (essential for troubleshooting blocked applications).
+- `audit_backlog_limit=256` — Sets the maximum number of outstanding audit buffers. If its not specified, the Linux kernel default is 64.
+
+3. 💡**Optional:** ```/etc/cmdline.d/resume.conf``` — For users who want to configure Suspend-to-Disk (Hibernation). If you are using a swap file, you must provide both the root device and the physical offset of the file. If you are using a dedicated swap partition, you can omit the resume_offset parameter entirely and point resume directly to your swap partition.
+
+>📝**Note:** Finding your swapfile offset differs on Btrfs and other filesystems.
+>
+> - For Btrfs: Run ```btrfs inspect-internal map-swapfile -o /path/to/swapfile```
+> - For Ext4, Ext3, XFS, and F2FS: Run ```Run filefrag -v /path/to/swapfile | awk '{if($1=="0:") print substr($4, 1, length($4)-2)}'```
+```ini
+resume=/dev/mapper/root resume_offset=YOUR-OFFSET
+```
+
+**Parameter breakdown:**
+- `resume=/dev/mapper/root` — Tells the kernel which device to look at to find your hibernated system state. In this setup, it points to your unlocked LUKS volume.
+- `resume_offset=YOUR-OFFSET` — Tells the kernel the exact physical sector on your drive where the swap file begins. This allows the kernel to bypass the filesystem driver during early boot and read the hibernation image directly.
 </div>
 
 ### 11.2 Configuring mkinitcpio
@@ -669,25 +698,33 @@ root UUID=YOUR-LUKS-UUID none discard,tpm2-device=auto
 ```
 </div>
 
-> 📝 **Note:** `discard` enables TRIM through the LUKS layer as discussed in the 
-> Btrfs section. `tpm2-device=auto` tells the initramfs to use TPM2 for unlocking — 
-> the TPM2 key slot will be enrolled in a later section. Until then the system will 
-> fall back to your passphrase.
+> 📝 **Note:** `discard` enables TRIM through the LUKS layer . `tpm2-device=auto` tells the initramfs to use TPM2 for unlocking — the TPM2 key slot will be enrolled in a later section. Until then the system will fall back to your passphrase.
 
-**`/etc/mkinitcpio.d/linux.preset`** — Configure mkinitcpio to output a UKI instead 
-of a traditional initramfs. Edit the file to match:
+**`/etc/mkinitcpio.d/linux.preset`** — Configure mkinitcpio to output a UKI instead of a traditional initramfs. Edit the file to match:
 <div align="left">
 
 ```ini
-ALL_config="/etc/mkinitcpio.conf"
+# mkinitcpio preset file for the 'linux' package
+
+#ALL_config="/etc/mkinitcpio.conf"
 ALL_kver="/boot/vmlinuz-linux"
 
 PRESETS=('default')
 
-default_uki="/boot/EFI/Linux/arch-linux.efi"
+#default_config="/etc/mkinitcpio.conf"
+#default_image="/boot/initramfs-linux.img"
+default_uki="esp/EFI/Linux/arch-linux.efi"
 default_options="--splash=/usr/share/systemd/bootctl/splash-arch.bmp"
+
+#fallback_config="/etc/mkinitcpio.conf"
+#fallback_image="/boot/initramfs-linux-fallback.img"
+#fallback_uki="esp/EFI/Linux/arch-linux-fallback.efi"
+#fallback_options="-S autodetect"
 ```
 </div>
+
+### 11.2 Building the UKI
+
 Create the output directory:
 <div align="left">
 
@@ -695,8 +732,7 @@ Create the output directory:
 # mkdir -p /boot/EFI/Linux
 ```
 </div>
-
-### 11.2 Building the UKI
+Now build the UKI:
 <div align="left">
 
 ```bash
@@ -710,6 +746,7 @@ Verify the UKI was created:
 # ls -lh /boot/EFI/Linux/
 ```
 </div>
+
 You should see `arch-linux.efi`. This is your UKI, a single signed EFI binary 
 containing everything needed to boot your system.
 
@@ -718,16 +755,88 @@ containing everything needed to boot your system.
 
 ## 12. Secure Boot
 
+Secure Boot ensures that only cryptographically signed bootloaders and kernels can run. In this setup we replace the default OEM keys with our own personal keys using `sbctl`, so only binaries we sign ourselves are trusted.
+
+> 🧠 **How it works:** Your UEFI firmware maintains a set of cryptographic keys — the Platform Key (PK), Key Exchange Key (KEK), and Signature Database (db). When Secure Boot is enabled, the firmware checks the signature of any EFI binary it loads against the db. If the signature matches, it loads. If not, it denies boot. By enrolling our own keys we ensure only our signed binaries are trusted.
+
 ### 12.1 Enrolling Your Own Keys with sbctl
 
-<!-- sbctl create-keys and enroll-keys.
-     Note on --microsoft flag and when to include/omit it. -->
+>⚠️**Hardware Compatibility Note:** Motherboard firmware quality varies wildly between manufacturers. While sbctl works seamlessly on most modern desktop motherboards (like MSI, Gigabyte, and ASUS), certain laptops (especially from HP and Acer) restrict software-based key enrollment. If sbctl enroll-keys throws a write or permission error, you may need to export your keys to a USB flash drive and manually load them via your BIOS's "Key Management" menu instead.
+
+First check the current Secure Boot state:
+
+```bash
+# sbctl status
+```
+
+The output should show `Setup Mode: Enabled` — if it doesn't, go into your UEFI firmware settings and clear the existing Secure Boot keys to enter setup mode before continuing.
+
+Create your personal Secure Boot keys:
+
+```bash
+# sbctl create-keys
+```
+
+Enroll your keys alongside Microsoft's keys:
+
+```bash
+# sbctl enroll-keys --microsoft
+```
+
+> 📝 **Note:** The `--microsoft` flag includes Microsoft's keys alongside yours. This is recommended for most systems as some firmware components, NVMe drivers and UEFI Option ROMs are signed by Microsoft and will fail to load without their key present. If you are certain your hardware doesn't need it, you can omit this flag for maximum key control.
+
+Verify the keys were enrolled:
+
+```bash
+# sbctl status
+```
+
+The output should now show `Installed: ✓ secure boot is installed`,`Secure Boot: Disabled` and `Setup Mode: Disabled`. Secure Boot will be enabled after reboot once the firmware loads with the new keys.
 
 ### 12.2 Signing the UKI
+Sign the UKI and systemd-boot binaries. The `-s` flag saves the paths to sbctl's database so they are automatically re-signed in the future:
+
+```bash
+# sbctl sign -s /boot/EFI/Linux/arch-linux.efi
+# sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
+# sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
+```
+Verify everything that needs signing is signed:
+
+```bash
+# sbctl verify
+```
+
+All entries should show `✓`. If anything shows `✗` sign it manually with `sbctl sign -s /path/to/file`.
 
 ### 12.3 Automating Re-signing on Kernel Updates
+Every time the kernel updates, mkinitcpio rebuilds the UKI and the signature becomes invalid. A pacman hook re-signs automatically after every kernel update.
 
-<!-- The pacman hook. Show the hook file and explain when it runs. -->
+Create `/etc/pacman.d/hooks/99-secureboot.hook`:
+
+```ini
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = linux
+
+[Action]
+Description = Signing new UKI for Secure Boot...
+When = PostTransaction
+Exec = /usr/bin/sbctl sign-all
+```
+
+> ⚠️ **Warning:** Without this hook, your system will fail to boot after every 
+> kernel update since the new unsigned UKI will be rejected by Secure Boot. 
+> Verify the hook is in place before rebooting.
+
+Create the hooks directory if it doesn't exist:
+
+```bash
+# mkdir -p /etc/pacman.d/hooks
+```
+Before rebooting, enable Secure Boot in your UEFI firmware settings. The system will now only boot signed EFI binaries — your signed UKI will pass, anything unsigned will be denied.
 
 ---
 
@@ -808,8 +917,6 @@ Contributions, issues and feature requests are welcome. Feel free to check the [
 
 The original setup of this repository is by [Aldin-Dreamer](https://github.com/Aldin-Dreamer).
 
-For a full list of all authors and contributors, see [the contributors page](https://github.com/GITHUB_USERNAME/REPO_SLUG/contributors).
-
 ---
 
 ## License
@@ -822,5 +929,5 @@ See [LICENSE](LICENSE) for more information.
 
 ## Acknowledgements
 
--
--
+- ArchWiki
+- Btrfs Documentation
