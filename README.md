@@ -500,18 +500,17 @@ At this stage you need to install some essential packages aside from the base pa
 - [Text Editor](https://wiki.archlinux.org/title/List_of_applications/Documents#Console) — Text editors allows us to read and write files comfortably from the console.
 - [tpm2-tools](https://archlinux.org/packages/?name=tpm2-tools) and [tpm2-tss](https://archlinux.org/packages/core/x86_64/tpm2-tss/) — TPM2 userspace tool and TPM2 library that is required for setting up TPM2.
 - [sbctl](https://archlinux.org/packages/?name=sbctl) — A user-friendly tool to handle secure boot keys.
+- [sudo](https://archlinux.org/packages/?name=sudo) — A tool to delegate authority to certain users. Unlike most distros, Arch Linux does not contain sudo as part of its base package so you have to seperately install it.
 </div>
 
-The base, linux and linux-firmware packages are mandatory to install. Append the name of the essential packages you are installing to the below command, run:
+The base, linux and linux-firmware packages are mandatory to install. Append the name of the essential packages you are installing to the below command:
 <div align="left">
 
 ```bash
 # pacstrap -K /mnt base linux linux-firmware
 ```
 
->📝**Note:**
-> - To install more packages or package groups, append the names to the ```pacstrap``` command above (space separated) or use ```pacman``` to install them while chrooted into the new system. You can also replace linux with the kernel package of your choice.
-> - When 
+>📝**Note:** To install more packages or package groups, append the names to the ```pacstrap``` command above (space separated) or use ```pacman``` to install them while chrooted into the new system. You can also replace linux with the kernel package of your choice.
 
 >💡**Optional Tools:** Some optional tools that are recommended to install are:
 > - [efibootmgr](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface#efibootmgr) — A useful tool for managing EFI boot entries. This is used as a diagnostic tool in this guide.
@@ -741,7 +740,7 @@ Now build the UKI:
 </div>
 Verify the UKI was created:
 <div align="left">
-
+ 
 ```bash
 # ls -lh /boot/EFI/Linux/
 ```
@@ -764,56 +763,77 @@ Secure Boot ensures that only cryptographically signed bootloaders and kernels c
 >⚠️**Hardware Compatibility Note:** Motherboard firmware quality varies wildly between manufacturers. While sbctl works seamlessly on most modern desktop motherboards (like MSI, Gigabyte, and ASUS), certain laptops (especially from HP and Acer) restrict software-based key enrollment. If sbctl enroll-keys throws a write or permission error, you may need to export your keys to a USB flash drive and manually load them via your BIOS's "Key Management" menu instead.
 
 First check the current Secure Boot state:
-
+<div align="left">
+ 
 ```bash
 # sbctl status
 ```
+</div>
 
 The output should show `Setup Mode: Enabled` — if it doesn't, go into your UEFI firmware settings and clear the existing Secure Boot keys to enter setup mode before continuing.
 
 Create your personal Secure Boot keys:
-
+<div align="left">
+ 
 ```bash
 # sbctl create-keys
 ```
+</div>
 
 Enroll your keys alongside Microsoft's keys:
-
+<div align="left">
+ 
 ```bash
 # sbctl enroll-keys --microsoft
 ```
+</div>
 
 > 📝 **Note:** The `--microsoft` flag includes Microsoft's keys alongside yours. This is recommended for most systems as some firmware components, NVMe drivers and UEFI Option ROMs are signed by Microsoft and will fail to load without their key present. If you are certain your hardware doesn't need it, you can omit this flag for maximum key control.
 
 Verify the keys were enrolled:
-
+<div align="left">
+ 
 ```bash
 # sbctl status
 ```
+</div>
 
 The output should now show `Installed: ✓ secure boot is installed`,`Secure Boot: Disabled` and `Setup Mode: Disabled`. Secure Boot will be enabled after reboot once the firmware loads with the new keys.
 
 ### 12.2 Signing the UKI
 Sign the UKI and systemd-boot binaries. The `-s` flag saves the paths to sbctl's database so they are automatically re-signed in the future:
-
+<div align="left">
+ 
 ```bash
 # sbctl sign -s /boot/EFI/Linux/arch-linux.efi
 # sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
 # sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
 ```
+</div>
 Verify everything that needs signing is signed:
-
+<div align="left">
+ 
 ```bash
 # sbctl verify
 ```
+</div>
 
 All entries should show `✓`. If anything shows `✗` sign it manually with `sbctl sign -s /path/to/file`.
 
 ### 12.3 Automating Re-signing on Kernel Updates
 Every time the kernel updates, mkinitcpio rebuilds the UKI and the signature becomes invalid. A pacman hook re-signs automatically after every kernel update.
 
-Create `/etc/pacman.d/hooks/99-secureboot.hook`:
+Create the hooks directory if it doesn't exist:
+<div align="left">
+ 
+```bash
+# mkdir -p /etc/pacman.d/hooks
+```
+</div>
 
+Create `/etc/pacman.d/hooks/99-secureboot.hook`:
+<div align="left">
+ 
 ```ini
 [Trigger]
 Operation = Install
@@ -826,16 +846,10 @@ Description = Signing new UKI for Secure Boot...
 When = PostTransaction
 Exec = /usr/bin/sbctl sign-all
 ```
+</div>
 
-> ⚠️ **Warning:** Without this hook, your system will fail to boot after every 
-> kernel update since the new unsigned UKI will be rejected by Secure Boot. 
-> Verify the hook is in place before rebooting.
+> ⚠️ **Warning:** Without this hook, your system will fail to boot after every kernel update since the new unsigned UKI will be rejected by Secure Boot. Verify the hook is in place before rebooting.
 
-Create the hooks directory if it doesn't exist:
-
-```bash
-# mkdir -p /etc/pacman.d/hooks
-```
 Before rebooting, enable Secure Boot in your UEFI firmware settings. The system will now only boot signed EFI binaries — your signed UKI will pass, anything unsigned will be denied.
 
 ---
@@ -879,14 +893,27 @@ This should list your TPM2 device. If nothing is listed your TPM2 is either not 
 
 ### 13.2 Enrolling the LUKS Volume
 
+> ❗**Important — Choosing Your TPM2 Configuration:** Before enrolling, consider the security and convenience tradeoffs of each option:
+>
+> **PCR Binding:**
+> | Configuration | Security | Convenience |
+> |---|---|---|
+> | PCR 7+11 | Binds to both Secure Boot state and the exact UKI loaded. Any kernel update breaks the binding and requires re-enrollment. | Requires re-enrollment after every UKI update |
+> | PCR 7 only | Binds only to Secure Boot state. A different signed UKI could be loaded without breaking the binding. Acceptable for most personal threat models. | No re-enrollment needed after kernel updates |
+>
+> **PIN:**
+> | Configuration | Security | Convenience |
+> |---|---|---|
+> | TPM2 + PIN | Requires both PCR values to match AND a short PIN at boot. Stronger against physical attacks. | Extra input required at every boot |
+> | TPM2 only | Fully automatic unlock. If PCR values match the key is released with no user input. | Seamless boot experience |
+>
+> This guide uses **PCR 7 only, no PIN** for a seamless boot experience. Adjust the `--tpm2-pcrs` flag to `--tpm2-pcrs=7+11` and add `--tpm2-with-pin=yes` in the enrollment command below if you prefer a stricter configuration.
+
 Enroll the TPM2 key slot — you will be prompted for your LUKS passphrase to authorize the change:
 <div align="left">
   
 ```bash
-$ systemd-cryptenroll \
-  --tpm2-device=auto \
-  --tpm2-pcrs=7+11 \
-  /dev/[device][root_partition_number]
+$ systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/[device][root_partition_number]
 ```
 </div>
 
@@ -910,10 +937,6 @@ SLOT TYPE
 </div>
 
 ### 13.3 Testing and Fallback
-
-<!-- What should happen on a successful reboot?
-     What does fallback to passphrase look like, and is that expected?
-     When does the reader need to re-enroll? -->
 Reboot the system. If everything is correct the LUKS volume will unlock automatically with no passphrase prompt.
 <div align="left">
   
@@ -949,14 +972,14 @@ To re-enroll, first wipe the existing TPM2 slot then re-run the enrollment comma
   
 ```bash
 $ systemd-cryptenroll --wipe-slot=tpm2 /dev/[device][root_partition_number]
-$ systemd-cryptenroll \
-  --tpm2-device=auto \
-  --tpm2-pcrs=7+11 \
-  /dev/[device][root_partition_number]
+$ systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/[device][root_partition_number]
 ```
 </div>
 
-> 💡 **Tip:** Kernel updates handled by the pacman hook from the Secure Boot section automatically re-sign the UKI but do **not** automatically re-enroll TPM2. After a kernel update you will be prompted for your passphrase on the next boot — this is normal. Re-enroll after confirming the new kernel boots correctly.
+> 💡 **Tip:** Kernel updates handled by the pacman hook from the Secure Boot section automatically re-sign the UKI but do **not** automatically re-enroll TPM2. A After a kernel update you will be prompted for your passphrase on the next boot — this is normal. Re-enroll after confirming the new kernel boots correctly.
+
+>💡 **Automatic TPM2 Re-enrollment:** A pacman hook can automatically re-enroll TPM2 after every kernel update, removing the need to manually re-enroll. However consider the threat model before enabling this — the purpose of PCR 11 binding is to ensure the exact kernel and initramfs that boots is the one you explicitly trusted. Automatic re-enrollment effectively trusts any new kernel that pacman
+installs without you manually verifying it first. For most personal setups where you trust your package sources this is a reasonable convenience tradeoff. If you are in a higher risk environment or want explicit control over every trusted kernel, manual re-enrollment is the safer choice.
 ---
 
 ## 14. Snapper — Btrfs Snapshots
@@ -987,18 +1010,13 @@ $ snapper -c root create-config /
 $ snapper -c home create-config /home
 ```
 
-> ⚠️ **Warning:** Running `snapper create-config` will attempt to create a 
-> `.snapshots` directory inside the subvolume. Since we already have a dedicated 
-> `@snapshots` subvolume mounted at `/.snapshots`, you need to verify snapper 
-> is using the correct mount point and not creating its own:
+> ⚠️ **Warning:** Running `snapper create-config` will attempt to create a `.snapshots` directory inside the subvolume. Since we already have a dedicated `@snapshots` subvolume mounted at `/.snapshots`, you need to verify snapper is using the correct mount point and not creating its own:
 >
 > ```bash
 > $ ls /.snapshots
 > ```
 >
-> If the directory is empty or owned by snapper correctly you are fine. 
-> If snapper created a nested subvolume instead, delete it and verify 
-> `@snapshots` is mounted correctly at `/.snapshots`.
+> If the directory is empty or owned by snapper correctly you are fine. If snapper created a nested subvolume instead, delete it and verify `@snapshots` is mounted correctly at `/.snapshots`.
 </div>
 
 ### 14.3 Configuring Retention
@@ -1017,9 +1035,7 @@ TIMELINE_LIMIT_YEARLY="0"
 
 Apply the same to `/etc/snapper/configs/home` adjusting to your preference. 
 
-> 💡 **Tip:** Be conservative with retention limits — snapshots accumulate 
-> quickly and as discussed earlier, too many snapshots can impact Btrfs 
-> performance. The values above are a reasonable starting point.
+> 💡 **Tip:** Be conservative with retention limits — snapshots accumulate quickly and as discussed earlier, too many snapshots can impact Btrfs  performance. The values above are a reasonable starting point.
 
 ### 14.4 Enabling Timers
 
@@ -1032,9 +1048,7 @@ $ systemctl enable --now snapper-cleanup.timer
 ```
 </div>
 
-`snapper-timeline.timer` creates snapshots on the schedule defined by your 
-retention config. `snapper-cleanup.timer` deletes old snapshots that exceed 
-your retention limits.
+`snapper-timeline.timer` creates snapshots on the schedule defined by your retention config. `snapper-cleanup.timer` deletes old snapshots that exceed your retention limits.
 
 Verify the timers are active:
 <div align="left">
@@ -1046,12 +1060,9 @@ $ systemctl status snapper-timeline.timer
 
 ### 14.5 snap-pac — Automatic Pre/Post Snapshots
 
-`snap-pac` is a pacman hook that automatically creates a snapshot before and 
-after every pacman transaction. This means every `pacman -Syu` or package 
-install gets a rollback point automatically with no manual intervention.
+`snap-pac` is a pacman hook that automatically creates a snapshot before and after every pacman transaction. This means every `pacman -Syu` or package install gets a rollback point automatically with no manual intervention.
 
-Verify snap-pac is working by installing any package and checking that 
-pre and post snapshots were created:
+Verify snap-pac is working by installing any package and checking that pre and post snapshots were created:
 <div align="left">
   
 ```bash
@@ -1059,8 +1070,7 @@ $ snapper -c root list
 ```
 </div>
 
-You should see a pair of snapshots with `pre` and `post` type for the 
-transaction.
+You should see a pair of snapshots with `pre` and `post` type for the transaction.
 
 ### 14.6 Rolling Back
 
@@ -1083,13 +1093,53 @@ $ snapper -c root undochange [pre_number]..[post_number]
 
 ## 15. Post-Installation Checklist
 
-<!-- A checklist the reader runs through before their first reboot.
-     Each item should be something that can actually be verified with a command. -->
 
-- [ ]
-- [ ]
-- [ ]
+At this point your system should be fully set up and running. Use this checklist 
+to verify everything is working correctly before considering the installation complete.
 
+### Encryption & Boot
+
+- [ ] `sbctl status` — `Secure Boot: Enabled`, `Installed: ✓`
+- [ ] `sbctl verify` — all required files show `✓`
+- [ ] `systemd-cryptenroll /dev/[device][root_partition_number]` — shows both 
+      `password` and `tpm2` slots
+- [ ] Reboot and verify TPM2 auto-unlock works with no passphrase prompt
+
+### Filesystem
+
+- [ ] `lsblk` — partition layout looks correct
+- [ ] `findmnt` — all subvolumes mounted at correct mountpoints with correct options
+- [ ] `swapon --show` — swap is active and correct size
+- [ ] `btrfs filesystem show` — filesystem is healthy, no errors
+
+### Network
+
+- [ ] `systemctl status NetworkManager` — active and running
+- [ ] `ping archlinux.org` — internet connectivity works
+
+### Snapper
+
+- [ ] `snapper list-configs` — root and home configs are present
+- [ ] `systemctl status snapper-timeline.timer` — active
+- [ ] `systemctl status snapper-cleanup.timer` — active
+- [ ] `snapper -c root list` — snap-pac created pre/post snapshots from 
+      package transactions during install
+
+### AppArmor
+
+- [ ] `aa-status` — AppArmor is enabled and profiles are loaded
+- [ ] `systemctl status apparmor` — active and running
+
+### System
+
+- [ ] `timedatectl status` — correct timezone and NTP is active
+- [ ] `locale` — correct locale is set
+- [ ] `hostname` — returns your configured hostname
+- [ ] `uname -r` — kernel version looks correct
+
+---
+
+> 💡 If anything in this checklist fails, refer to the [Troubleshooting](#17-troubleshooting) or [Recovery Guide](#16-recovery-guide) sections for help.
 ---
 
 ## 16. Recovery Guide
