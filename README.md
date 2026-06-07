@@ -481,7 +481,7 @@ To verify swap has been activated, run the below command and a similar output wi
 # swapon --show
 ---------------------------------------------------------------------------------------------------------------------------------
 NAME           TYPE      SIZE USED PRIO
-/swap/swapfile file      4.0G   0B   -2
+/swap/swapfile file      4.0G   0B   -1
 ```
 </div>
 
@@ -507,13 +507,13 @@ The base, linux and linux-firmware packages are mandatory to install. Append the
 <div align="left">
 
 ```bash
-# pacstrap -K /mnt base linux linux-firmware
+# pacstrap -K /mnt base linux linux-firmware sbctl tpm2-tools tpm2-tss
 ```
 
 >📝**Note:** To install more packages or package groups, append the names to the ```pacstrap``` command above (space separated) or use ```pacman``` to install them while chrooted into the new system. You can also replace linux with the kernel package of your choice.
 
 >💡**Optional Tools:** Some optional tools that are recommended to install are:
-> - [efibootmgr](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface#efibootmgr) — A useful tool for managing EFI boot entries. This is used as a diagnostic tool in this guide.
+> - [efibootmgr](https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface#efibootmgr) — A useful tool for managing EFI boot entries.
 > - [Linux man pages](https://wiki.archlinux.org/title/Man_page) — If you want to access the official Linux documentations, you can install [man-db](https://archlinux.org/packages/?name=man-db), [man-pages](https://archlinux.org/packages/?name=man-pages) and [texinfo](https://archlinux.org/packages/?name=texinfo).
 </div>
 
@@ -1096,7 +1096,8 @@ $ snapper -c root undochange [pre_number]..[post_number]
 
 At this point your system should be fully set up and running. Use this checklist 
 to verify everything is working correctly before considering the installation complete.
-
+<div align="left">
+  
 ### Encryption & Boot
 
 - [ ] `sbctl status` — `Secure Boot: Enabled`, `Installed: ✓`
@@ -1136,6 +1137,7 @@ to verify everything is working correctly before considering the installation co
 - [ ] `locale` — correct locale is set
 - [ ] `hostname` — returns your configured hostname
 - [ ] `uname -r` — kernel version looks correct
+</div>
 
 ---
 
