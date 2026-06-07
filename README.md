@@ -1,6 +1,6 @@
 <h1 align="center">
   <a href="https://github.com/Aldin-Dreamer/Arch-Hypr-Vault">
-    <img src="docs/images/logo.svg" alt="Logo" width="100" height="100">
+    <img src="https://raw.githubusercontent.com/Aldin-Dreamer/Arch-Hypr-Vault/master/docs/images/logo.svg?sanitize=true" alt="Logo" width="100" height="100" />
   </a>
 </h1>
 
