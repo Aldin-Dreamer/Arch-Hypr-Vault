@@ -98,7 +98,6 @@ Arch-Hypr-Vault/
 |---|---|
 | Filesystem | Btrfs |
 | Snapshot support | Snapper |
-| Windows Manager | Hyprland |
 
 >🔒**Security Scope:** This setup will protect your data at rest i.e, if your device gets stolen or is physically tampered with by malicious actors. It wont however protect your setup when it is powered on and running, so you are still vulnerable to attacks from the internet, malware and even when your laptop is stolen while it is powered on. For that you need additional measure such as a firewall, keeping you system updated and not leave it powered on in public places.
 
@@ -818,7 +817,7 @@ Verify everything that needs signing is signed:
 ```
 </div>
 
-All entries should show `✓`. If anything shows `✗` sign it manually with `sbctl sign -s /path/to/file`.
+All entries should show `✓` except `/boot/vmlinuz-linux`. If anything shows `✗` sign it manually with `sbctl sign -s /path/to/file`.
 
 ### 12.3 Automating Re-signing on Kernel Updates
 Every time the kernel updates, mkinitcpio rebuilds the UKI and the signature becomes invalid. A pacman hook re-signs automatically after every kernel update.
