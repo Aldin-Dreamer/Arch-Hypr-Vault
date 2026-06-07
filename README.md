@@ -527,11 +527,11 @@ To get needed file systems mounted on startup, generate an fstab file with persi
 ```
 </div>
 
-Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors. 
+Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors.
 
 <div align="left">
   
->📝**Note:** If you have a swapfile, you must manually edit the ```/mnt/etc/fstab``` file configuration to add an entry for the swap file. If your swapfile is not in ```/swap/swapfile```, replace it with your swapfile path:
+>📝**Note:** If you have a swapfile, you must manually edit the ```/mnt/etc/fstab``` file configuration to add an entry for the swapfile if its not already present. If your swapfile is not in ```/swap/swapfile```, replace it with your swapfile path:
 >```
 >/swap/swapfile none swap defaults 0 0
 >```
@@ -557,7 +557,7 @@ Now we have chrooted into the new system's filesystem and is interacting with th
 - To set your hostname and network configuration, follow the steps in [ArchWiki Installation Guide — Network configuration](https://wiki.archlinux.org/title/Installation_guide#Network_configuration).
 - To set a root password, follow the steps in [ArchWiki Installation Guide — Root password](https://wiki.archlinux.org/title/Installation_guide#Root_password).
 </div>
-
+- To set up a superuser, follow the steps in [ArchWiki Installation Guide —  User Management](https://wiki.archlinux.org/title/Users_and_groups#User_management).
 
 ---
 
