@@ -711,7 +711,7 @@ PRESETS=('default')
 
 #default_config="/etc/mkinitcpio.conf"
 #default_image="/boot/initramfs-linux.img"
-default_uki="esp/EFI/Linux/arch-linux.efi"
+default_uki="/boot/EFI/Linux/arch-linux.efi"
 default_options="--splash=/usr/share/systemd/bootctl/splash-arch.bmp"
 
 #fallback_config="/etc/mkinitcpio.conf"
@@ -797,7 +797,7 @@ Verify the keys were enrolled:
 ```
 </div>
 
-The output should now show `Installed: ✓ secure boot is installed`,`Secure Boot: Disabled` and `Setup Mode: Disabled`. Secure Boot will be enabled after reboot once the firmware loads with the new keys.
+The output should now show `Installed: ✓ secure boot is installed`. Secure Boot will be enabled after reboot once the firmware loads with the new keys.
 
 ### 12.2 Signing the UKI
 Sign the UKI and systemd-boot binaries. The `-s` flag saves the paths to sbctl's database so they are automatically re-signed in the future:
@@ -991,7 +991,7 @@ Snapper is a tool for managing Btrfs snapshots. It automates the creation and cl
 
 
 ### 14.1 Installation
-
+Connect to the internet and run:
 <div align="left">
   
 ```bash
@@ -1003,9 +1003,8 @@ $ pacman -S snapper snap-pac
 
 Snapper requires a configuration for each subvolume you want to snapshot. We will create configurations for `@` and `@home`:
 <div align="left">
-  
-```bash
-$ snapper -c root create-config /
+
+```
 $ snapper -c home create-config /home
 ```
 
@@ -1015,7 +1014,16 @@ $ snapper -c home create-config /home
 > $ ls /.snapshots
 > ```
 >
-> If the directory is empty or owned by snapper correctly you are fine. If snapper created a nested subvolume instead, delete it and verify `@snapshots` is mounted correctly at `/.snapshots`.
+> If the directory is empty or owned by snapper correctly you are fine. If snapper created a nested subvolume instead, delete it and verify `@snapshots` is mounted correctly at `/.snapshots`:
+> 
+>```bash
+>$ sudo mount -o subvolid=5 /dev/[device][root_partition_number] /mnt
+>$ sudo mkdir /mnt/@snapshots/{root,home}
+>$ sudo umount /mnt
+>$ sudo mkdir /.snapshots
+>$ sudo mkdir /home/.snapshots
+>```
+
 </div>
 
 ### 14.3 Configuring Retention
