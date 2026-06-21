@@ -20,6 +20,7 @@
 </div>
 
 ---
+> ❗❗⚠️ **Warning: This Guide is still a Work in Progress, so any mistakes or amibguity found can be mentioned in the Issues Channel**
 
 An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official ArchWiki Installation guide. This guide will cover how the setup works and how to replicate it yourself. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
 
