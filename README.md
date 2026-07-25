@@ -35,23 +35,22 @@ An installation guide for security focused users who want a seamlessly encrypted
 <details open="open">
 <summary>Table of Contents</summary>
 
- [Repo Structure](#1-repo-structure)<br>
- [What This Setup Achieves](#2-what-this-setup-achieves)<br>
- [Prerequisites](#3-prerequisites)<br>
- [How It All Fits Together](#4-how-it-all-fits-together)<br>
- [Disk Partitioning](#5-disk-partitioning)<br>
- [LUKS2 Encryption](#6-luks2-encryption)<br>
- [Btrfs Setup](#7-btrfs-setup)<br>
- [Base System Installation](#8-base-system-installation)<br>
- [System Configuration](#9-system-configuration)<br>
- [Bootloader — systemd-boot](#10-bootloader--systemd-boot)<br>
- [Unified Kernel Image (UKI)](#11-unified-kernel-image-uki)<br>
- [Secure Boot](#12-secure-boot)<br>
- [TPM2 Enrollment](#13-tpm2-enrollment)<br>
- [Snapper — Btrfs Snapshots](#14-snapper--btrfs-snapshots)<br>
- [Post-Installation Checklist](#15-post-installation-checklist)<br>
- [Recovery Guide](#16-recovery-guide)<br>
- [Troubleshooting](#17-troubleshooting)<br>
+ [What This Setup Achieves](#1-what-this-setup-achieves)<br>
+ [Prerequisites](#2-prerequisites)<br>
+ [How It All Fits Together](#3-how-it-all-fits-together)<br>
+ [Disk Partitioning](#4-disk-partitioning)<br>
+ [LUKS2 Encryption](#5-luks2-encryption)<br>
+ [Btrfs Setup](#6-btrfs-setup)<br>
+ [Base System Installation](#7-base-system-installation)<br>
+ [System Configuration](#8-system-configuration)<br>
+ [Bootloader — systemd-boot](#9-bootloader--systemd-boot)<br>
+ [Unified Kernel Image (UKI)](#10-unified-kernel-image-uki)<br>
+ [Secure Boot](#11-secure-boot)<br>
+ [TPM2 Enrollment](#12-tpm2-enrollment)<br>
+ [Snapper — Btrfs Snapshots](#13-snapper--btrfs-snapshots)<br>
+ [Post-Installation Checklist](#14-post-installation-checklist)<br>
+ [Recovery Guide](#15-recovery-guide)<br>
+ [Troubleshooting](#16-troubleshooting)<br>
  [Desktop Setup](#desktop-setup)<br>
  [Contributing](#contributing)<br>
  [Authors & Contributors](#authors--contributors)<br>
@@ -63,24 +62,12 @@ An installation guide for security focused users who want a seamlessly encrypted
 ---
 </div>
 
-## 1. Repo Structure
 
-```
-Arch-Hypr-Vault/
-├── .gitignore
-├── LICENSE
-├── README.md
-├── RICE.md
-├── .config/
-└── docs/
-    └── images/
-        └── logo.svg
-```
 
 ---
 <div align="center">
 
-## 2. What This Setup Achieves
+## 1. What This Setup Achieves
 
 **Security & Boot**
 
@@ -105,7 +92,7 @@ Arch-Hypr-Vault/
 
 ---
 
-## 3. Prerequisites
+## 2. Prerequisites
 
 **You will need:**
 <div align="left">
@@ -121,7 +108,7 @@ Arch-Hypr-Vault/
 
 ---
 
-## 4. How It All Fits Together
+## 3. How It All Fits Together
 **The Chain of Trust**
 
 ```mermaid
@@ -160,7 +147,7 @@ flowchart TD
 
 ---
 
-## 5. Disk Partitioning
+## 4. Disk Partitioning
 
 Before we begin, it is important to visualize how disk space and partitions work: <br><br>
 **[ Partition 1 | Partition 2 | *Free Space* | Partition 3 | *Free space* ]** <br><br>
@@ -180,7 +167,7 @@ Given this partition layout, there is an important distinction to make here - th
 
 To securely erase your drive, follow the steps in this article: [Secure Erasure of the drive — ArchWiki](https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation#Secure_erasure_of_the_drive)
 
- 5.1 Partition Sceheme
+ 4.1 Partition Sceheme
  ---
 
 Follow the Arch Wiki Installation Guide till <a href="https://wiki.archlinux.org/title/Installation_guide#Update_the_system_clock">Updating the system clock — ArchWiki</a>
@@ -197,7 +184,7 @@ The recommended partition strategy for this setup is:
 <!-- Mention Zram as an alternative -->
 > 📝**Note:** A swap partition is not recommended. An unencrypted swap partition will hold onto data when you shut down, so anything that the kernel places into the swap file during normal operation will be saved unencrypted. If you do need swap, I recommend to use a swap file instead - it will lie under the LUKS encryption and provide the functionality of swap without compromising security. If you still require a swap partition, I recommend reading: [Swap Encryption — ArchWiki](https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption)
 
- 5.2 Creating the partitions
+ 4.2 Creating the partitions
  ---
 
 > ⚠️**Warning:** The following steps will wipe the disk!! Backup anything you wish to save.
@@ -303,7 +290,7 @@ Device                                 Start        End        Sectors   Size   
 
 ---
 
-## 6. LUKS2 Encryption
+## 5. LUKS2 Encryption
 
 Once the partitions have been created, each newly created partition must be formatted with an appropriate file system. 
 For the EFI partition, we will format it with FAT32 filesystem. This is the recommended option as the choice of filesystem needs to adhere to [UEFI specifications](https://uefi.org/specs/UEFI/2.11/13_Protocols_Media_Access.html#file-system-format-1). To create it, run:
@@ -361,7 +348,7 @@ Then mount both the root partition and EFI partitions:
 ```
 </div>
 
-## 7. Btrfs Setup
+## 6. Btrfs Setup
 > 📝**Note:** This section is only relevant to you if you chose btrfs as your filesystem while formatting your root partition. Others can skip to the next section.
 
 **Btrfs Subvolumes** — They function like independent filesystems that can be mounted separately in a hierarchy, providing the benefits of partitions without being actual physical partitions. Because the subvolumes work at the filesystem level rather than the block level, they can be dynamically resized as needed making them more flexible. Note that, because subvolumes are at the filesystem level, the subvolumes combined are limited by the storage space of the physical partition they are occupying. This is especially useful in this setup as we can encrypt them with a single LUKS passphrase.
@@ -487,7 +474,7 @@ NAME           TYPE      SIZE USED PRIO
 
 ---
 
-## 8. Base System Installation
+## 7. Base System Installation
 
 ### Install essential packages
 
@@ -538,7 +525,7 @@ Check the resulting ```/mnt/etc/fstab``` file, and edit it in case of errors.
 </div>
 
 ---
-## 9. System Configuration
+## 8. System Configuration
 
 <!-- Everything inside arch-chroot:
      timezone, locale, hostname, root password, user creation, sudo, services to enable -->
@@ -561,7 +548,7 @@ Now we have chrooted into the new system's filesystem and is interacting with th
 
 ---
 
-## 10. Bootloader — systemd-boot
+## 9. Bootloader — systemd-boot
 
 **systemd-boot** — It is a minimal UEFI bootloader that is part of the systemd project. Its only role is to act as a boot menu and simply find and loads signed EFI binaries. This simplicity is what makes it a natural fit for Secure Boot and UKI.
 
@@ -610,9 +597,9 @@ editor   no
 > 📖 **Further reading:** [Systemd-boot Configuration — ArchWiki](https://wiki.archlinux.org/title/Systemd-boot#Configuration) . [Configuration Options — ArchWiki](https://man.archlinux.org/man/loader.conf.5)
 ---
 
-## 11. Unified Kernel Image (UKI)
+## 10. Unified Kernel Image (UKI)
 
-### 11.1 Kernel Command Line
+### 10.1 Kernel Command Line
 
 The kernel command line tells the kernel how to boot, which device is the root filesystem, how it is encrypted, and which subvolume to use. Because this is baked into the UKI at build time, it is covered by the Secure Boot signature and cannot be tampered with at boot.
 
@@ -675,7 +662,7 @@ resume=/dev/mapper/root resume_offset=YOUR-OFFSET
 - `resume_offset=YOUR-OFFSET` — Tells the kernel the exact physical sector on your drive where the swap file begins. This allows the kernel to bypass the filesystem driver during early boot and read the hibernation image directly.
 </div>
 
-### 11.2 Configuring mkinitcpio
+### 10.2 Configuring mkinitcpio
 mkinitcpio builds the initramfs and bundles it into the UKI. Two files need to 
 be configured:
 
@@ -722,7 +709,7 @@ default_options="--splash=/usr/share/systemd/bootctl/splash-arch.bmp"
 ```
 </div>
 
-### 11.2 Building the UKI
+### 10.3 Building the UKI
 
 Create the output directory:
 <div align="left">
@@ -752,13 +739,13 @@ containing everything needed to boot your system.
 > ⚠️ **Important:** Every time your kernel updates, the UKI is automatically rebuilt by a mkinitcpio pacman hook. However the new UKI will need to be re-signed for Secure Boot after each rebuild. This is automated in the next section via a pacman hook.
 ---
 
-## 12. Secure Boot
+## 11. Secure Boot
 
 Secure Boot ensures that only cryptographically signed bootloaders and kernels can run. In this setup we replace the default OEM keys with our own personal keys using `sbctl`, so only binaries we sign ourselves are trusted.
 
 > 🧠 **How it works:** Your UEFI firmware maintains a set of cryptographic keys — the Platform Key (PK), Key Exchange Key (KEK), and Signature Database (db). When Secure Boot is enabled, the firmware checks the signature of any EFI binary it loads against the db. If the signature matches, it loads. If not, it denies boot. By enrolling our own keys we ensure only our signed binaries are trusted.
 
-### 12.1 Enrolling Your Own Keys with sbctl
+### 11.1 Enrolling Your Own Keys with sbctl
 
 >⚠️**Hardware Compatibility Note:** Motherboard firmware quality varies wildly between manufacturers. While sbctl works seamlessly on most modern desktop motherboards (like MSI, Gigabyte, and ASUS), certain laptops (especially from HP and Acer) restrict software-based key enrollment. If sbctl enroll-keys throws a write or permission error, you may need to export your keys to a USB flash drive and manually load them via your BIOS's "Key Management" menu instead.
 
@@ -800,7 +787,7 @@ Verify the keys were enrolled:
 
 The output should now show `Installed: ✓ secure boot is installed`. Secure Boot will be enabled after reboot once the firmware loads with the new keys.
 
-### 12.2 Signing the UKI
+### 11.2 Signing the UKI
 Sign the UKI and systemd-boot binaries. The `-s` flag saves the paths to sbctl's database so they are automatically re-signed in the future:
 <div align="left">
  
@@ -820,7 +807,7 @@ Verify everything that needs signing is signed:
 
 All entries should show `✓` except `/boot/vmlinuz-linux`. If anything shows `✗` sign it manually with `sbctl sign -s /path/to/file`.
 
-### 12.3 Automating Re-signing on Kernel Updates
+### 11.3 Automating Re-signing on Kernel Updates
 Every time the kernel updates, mkinitcpio rebuilds the UKI and the signature becomes invalid. A pacman hook re-signs automatically after every kernel update.
 
 Create the hooks directory if it doesn't exist:
@@ -854,9 +841,9 @@ Before rebooting, enable Secure Boot in your UEFI firmware settings. The system 
 
 ---
 
-## 13. TPM2 Enrollment
+## 12. TPM2 Enrollment
 
-### 13.1 Understanding PCR Policies
+### 12.1 Understanding PCR Policies
      
 The TPM2 chip is used to automatically unlock the LUKS encryption key at boot without requiring a passphrase. It does this by binding the key release to specific PCR values — measurements of the boot environment taken by the firmware. If the boot environment changes, the PCR values change and the TPM refuses to release the key, falling back to your passphrase.
 
@@ -891,7 +878,7 @@ $ systemd-cryptenroll --tpm2-device=list
 This should list your TPM2 device. If nothing is listed your TPM2 is either not present, not enabled in firmware, or the `tpm2-tss` library is missing.
 
 
-### 13.2 Enrolling the LUKS Volume
+### 12.2 Enrolling the LUKS Volume
 
 > ❗**Important — Choosing Your TPM2 Configuration:** Before enrolling, consider the security and convenience tradeoffs of each option:
 >
@@ -936,7 +923,7 @@ SLOT TYPE
 ```
 </div>
 
-### 13.3 Testing and Fallback
+### 12.3 Testing and Fallback
 Reboot the system. If everything is correct the LUKS volume will unlock automatically with no passphrase prompt.
 <div align="left">
   
@@ -956,7 +943,7 @@ $ systemd-cryptenroll /dev/[device][root_partition_number]
 > 📝 **Note:** If TPM2 unsealing fails for any reason, `systemd-cryptsetup` will automatically fall back to prompting for your passphrase. This is expected and correct behaviour — it means your fallback is working.
 
 
-### 13.4 When to Re-enroll
+### 12.4 When to Re-enroll
 
 TPM2 re-enrollment is required after any of the following events since they change the PCR values recorded at enrollment time:
 
@@ -982,7 +969,7 @@ $ systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/[device][root_partit
 installs without you manually verifying it first. For most personal setups where you trust your package sources this is a reasonable convenience tradeoff. If you are in a higher risk environment or want explicit control over every trusted kernel, manual re-enrollment is the safer choice.
 ---
 
-## 14. Snapper — Btrfs Snapshots
+## 13. Snapper — Btrfs Snapshots
 
 > 📝**Note:** This section is only relevant to you if you chose Btrfs as your filesystem. Others can skip to the next section.
 
@@ -991,7 +978,7 @@ Snapper is a tool for managing Btrfs snapshots. It automates the creation and cl
 > 🧠 **How snapshots work in this setup:** Snapper stores snapshots inside the `@snapshots` subvolume mounted at `/.snapshots`. Each snapshot is a read-only point-in-time copy of the subvolume it belongs to. Because Btrfs snapshots use CoW, they are created instantly and only consume space for data that has changed since the snapshot was taken.
 
 
-### 14.1 Installation
+### 13.1 Installation
 Connect to the internet and run:
 <div align="left">
   
@@ -1000,7 +987,7 @@ $ pacman -S snapper snap-pac
 ```
 </div>
 
-### 14.2 Creating Snapper Configurations
+### 13.2 Creating Snapper Configurations
 
 Snapper requires a configuration for each subvolume you want to snapshot. We will create configurations for `@` and `@home`:
 <div align="left">
@@ -1027,7 +1014,7 @@ $ snapper -c home create-config /home
 
 </div>
 
-### 14.3 Configuring Retention
+### 13.3 Configuring Retention
 
 Edit `/etc/snapper/configs/root` to set how many snapshots to keep:
 <div align="left">
@@ -1045,7 +1032,7 @@ Apply the same to `/etc/snapper/configs/home` adjusting to your preference.
 
 > 💡 **Tip:** Be conservative with retention limits — snapshots accumulate quickly and as discussed earlier, too many snapshots can impact Btrfs  performance. The values above are a reasonable starting point.
 
-### 14.4 Enabling Timers
+### 13.4 Enabling Timers
 
 Enable the timeline and cleanup timers:
 <div align="left">
@@ -1066,7 +1053,7 @@ $ systemctl status snapper-timeline.timer
 ```
 </div>
 
-### 14.5 snap-pac — Automatic Pre/Post Snapshots
+### 13.5 snap-pac — Automatic Pre/Post Snapshots
 
 `snap-pac` is a pacman hook that automatically creates a snapshot before and after every pacman transaction. This means every `pacman -Syu` or package install gets a rollback point automatically with no manual intervention.
 
@@ -1080,7 +1067,7 @@ $ snapper -c root list
 
 You should see a pair of snapshots with `pre` and `post` type for the transaction.
 
-### 14.6 Rolling Back
+### 13.6 Rolling Back
 
 If something goes wrong after a package update or system change:
 <div align="left">
@@ -1099,7 +1086,7 @@ $ snapper -c root undochange [pre_number]..[post_number]
 > 📖 **Further reading:** [Snapper — ArchWiki](https://wiki.archlinux.org/title/Snapper)
 ---
 
-## 15. Post-Installation Checklist
+## 14. Post-Installation Checklist
 
 
 At this point your system should be fully set up and running. Use this checklist 
@@ -1152,7 +1139,7 @@ to verify everything is working correctly before considering the installation co
 > 💡 If anything in this checklist fails, refer to the [Troubleshooting](#17-troubleshooting) or [Recovery Guide](#16-recovery-guide) sections for help.
 ---
 
-## 16. Recovery Guide
+## 15. Recovery Guide
 
 <!-- What to do if the system won't boot.
      The basic steps: boot ISO → open LUKS → mount Btrfs → chroot.
@@ -1160,7 +1147,7 @@ to verify everything is working correctly before considering the installation co
 
 ---
 
-## 17. Troubleshooting
+## 16. Troubleshooting
 
 <!-- Common failure points and their fixes.
      Add to this as you hit issues during your own installs. -->
