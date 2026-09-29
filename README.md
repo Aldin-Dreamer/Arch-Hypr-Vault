@@ -20,8 +20,6 @@
 </div>
 
 ---
-> ❗❗⚠️ **Warning: This Guide is still a Work in Progress, so any mistakes or amibguity found can be mentioned in the Issues Channel**
-
 An installation guide for security focused users who want a seamlessly encrypted system with LUKS encryption, TPM2 auto unlock and secure boot. This guide is meant to be used alongside the official ArchWiki Installation guide. This guide will cover how the setup works and how to replicate it yourself. Filesystem and tooling choices are also made with day-to-day usability in mind — such as Btrfs for snapshot-based rollbacks.
 
 > ⚠️ **Warning:** This process involves disk partitioning and will erase all data
@@ -48,10 +46,7 @@ An installation guide for security focused users who want a seamlessly encrypted
  [Secure Boot](#11-secure-boot)<br>
  [TPM2 Enrollment](#12-tpm2-enrollment)<br>
  [Snapper — Btrfs Snapshots](#13-snapper--btrfs-snapshots)<br>
- [Post-Installation Checklist](#14-post-installation-checklist)<br>
- [Recovery Guide](#15-recovery-guide)<br>
- [Troubleshooting](#16-troubleshooting)<br>
- [Desktop Setup](#desktop-setup)<br>
+ [Troubleshooting](#14-troubleshooting)<br>
  [Contributing](#contributing)<br>
  [Authors & Contributors](#authors--contributors)<br>
  [License](#license)<br>
@@ -1086,68 +1081,7 @@ $ snapper -c root undochange [pre_number]..[post_number]
 > 📖 **Further reading:** [Snapper — ArchWiki](https://wiki.archlinux.org/title/Snapper)
 ---
 
-## 14. Post-Installation Checklist
-
-
-At this point your system should be fully set up and running. Use this checklist 
-to verify everything is working correctly before considering the installation complete.
-<div align="left">
-  
-### Encryption & Boot
-
-- [ ] `sbctl status` — `Secure Boot: Enabled`, `Installed: ✓`
-- [ ] `sbctl verify` — all required files show `✓`
-- [ ] `systemd-cryptenroll /dev/[device][root_partition_number]` — shows both 
-      `password` and `tpm2` slots
-- [ ] Reboot and verify TPM2 auto-unlock works with no passphrase prompt
-
-### Filesystem
-
-- [ ] `lsblk` — partition layout looks correct
-- [ ] `findmnt` — all subvolumes mounted at correct mountpoints with correct options
-- [ ] `swapon --show` — swap is active and correct size
-- [ ] `btrfs filesystem show` — filesystem is healthy, no errors
-
-### Network
-
-- [ ] `systemctl status NetworkManager` — active and running
-- [ ] `ping archlinux.org` — internet connectivity works
-
-### Snapper
-
-- [ ] `snapper list-configs` — root and home configs are present
-- [ ] `systemctl status snapper-timeline.timer` — active
-- [ ] `systemctl status snapper-cleanup.timer` — active
-- [ ] `snapper -c root list` — snap-pac created pre/post snapshots from 
-      package transactions during install
-
-### AppArmor
-
-- [ ] `aa-status` — AppArmor is enabled and profiles are loaded
-- [ ] `systemctl status apparmor` — active and running
-
-### System
-
-- [ ] `timedatectl status` — correct timezone and NTP is active
-- [ ] `locale` — correct locale is set
-- [ ] `hostname` — returns your configured hostname
-- [ ] `uname -r` — kernel version looks correct
-</div>
-
----
-
-> 💡 If anything in this checklist fails, refer to the [Troubleshooting](#17-troubleshooting) or [Recovery Guide](#16-recovery-guide) sections for help.
----
-
-## 15. Recovery Guide
-
-<!-- What to do if the system won't boot.
-     The basic steps: boot ISO → open LUKS → mount Btrfs → chroot.
-     Link to docs/recovery.md for detailed scenarios. -->
-
----
-
-## 16. Troubleshooting
+## 14. Troubleshooting
 
 <!-- Common failure points and their fixes.
      Add to this as you hit issues during your own installs. -->
@@ -1157,12 +1091,6 @@ to verify everything is working correctly before considering the installation co
 
 **[Problem]**
 > Cause and fix
-
----
-
-## Desktop Setup
-
-For the Hyprland rice and desktop configuration see [RICE.md](RICE.md)
 
 ---
 
